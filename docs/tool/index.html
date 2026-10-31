@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>一页通 · 贴纸工具 Sticker Tool</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<link rel="icon" href="data:,">
+<!-- 共用文件带版本号：改了 shared.* 就把 v 加 1，避免浏览器用旧的缓存 -->
+<link rel="stylesheet" href="../shared.css?v=2">
+<style id="pageSize"></style>
+<style>
+  :root {
+    --bg: #f5f5f4; --panel: #ffffff; --text: #1c1917; --muted: #78716c; --border: #e7e5e4; --soft: #f5f5f4;
+    --accent: #2563eb; --accent-soft: #eff6ff; --field: #ffffff; --ok: #15803d; --warn: #b45309; --bad: #dc2626;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0c0a09; --panel: #1c1917; --text: #f5f5f4; --muted: #a8a29e; --border: #292524; --soft: #231f1d;
+      --accent: #60a5fa; --accent-soft: #172554; --field: #0c0a09; --ok: #4ade80; --warn: #fbbf24; --bad: #f87171;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0c0a09; --panel: #1c1917; --text: #f5f5f4; --muted: #a8a29e; --border: #292524; --soft: #231f1d;
+    --accent: #60a5fa; --accent-soft: #172554; --field: #0c0a09; --ok: #4ade80; --warn: #fbbf24; --bad: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", sans-serif; }
+  small { font-weight: 400; color: var(--muted); }
+  button, select, input { font: inherit; color: var(--text); }
+  button { border: 1px solid var(--border); background: var(--panel); padding: 8px 14px; border-radius: 8px; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button:disabled { opacity: .45; cursor: default; }
+  select, input[type=text], input:not([type]), input[type=tel], input[type=number] {
+    width: 100%; background: var(--field); border: 1px solid var(--border); border-radius: 8px; padding: 9px 10px; }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+  /* 顶栏：本张进度和主要操作一直在眼前 */
+  .top { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 10px 20px; background: var(--panel); border-bottom: 1px solid var(--border); }
+  .top .brand { font-weight: 700; font-size: 17px; }
+  .top .brand a { color: var(--muted); font-weight: 400; font-size: 13px; text-decoration: none; margin-left: 8px; }
+  .top .progress { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 220px; }
+  .bar { flex: 1; max-width: 220px; height: 8px; background: var(--soft); border-radius: 99px; overflow: hidden; border: 1px solid var(--border); }
+  .bar i { display: block; height: 100%; background: var(--accent); transition: width .2s; }
+  .top .count { font-size: 14px; white-space: nowrap; }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(360px, 1fr); gap: 16px; padding: 16px 20px 32px; align-items: start; }
+  @media (max-width: 980px) { .layout { grid-template-columns: 1fr; padding: 12px 16px 24px; } .top { padding: 10px 16px; } }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; min-width: 0; }
+  .panel + .panel { margin-top: 16px; }
+  h2 { margin: 0 0 10px; font-size: 15px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 4px; }
+  .hint { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
+  .msg { font-size: 13px; margin: 8px 0 0; min-height: 1.5em; color: var(--warn); }
+
+  /* 快速添加 */
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .seg button { border: none; border-radius: 0; padding: 8px 16px; background: var(--panel); }
+  .seg button + button { border-left: 1px solid var(--border); }
+  .seg button.on { background: var(--accent); color: #fff; font-weight: 600; }
+  .quick { display: grid; grid-template-columns: 1.3fr 1fr .8fr 1.4fr auto; gap: 8px; align-items: end; margin-top: 12px; }
+  .quick label { margin-top: 0; }
+  @media (max-width: 640px) { .quick { grid-template-columns: 1fr 1fr; } .quick .add { grid-column: span 2; } }
+  .quick .add button { width: 100%; height: 41px; }
+
+  /* 本张名单 */
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 12px; font-weight: 500; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  td { padding: 9px 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: var(--soft); }
+  tbody tr.sel { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+  td.n { width: 28px; color: var(--muted); }
+  td .zh { font-weight: 600; margin-right: 6px; }
+  .chip { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--border); white-space: nowrap; }
+  .st-ok { color: var(--ok); font-size: 13px; white-space: nowrap; }
+  .st-bad { color: var(--bad); font-size: 13px; white-space: nowrap; }
+  td.x { width: 40px; text-align: right; }
+  td.x button { padding: 2px 8px; border-color: transparent; background: none; color: var(--muted); }
+  td.x button:hover { color: var(--bad); }
+  .empty { text-align: center; color: var(--muted); padding: 28px 12px; font-size: 14px; }
+  .slots { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .tableActions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+  /* 右侧：选中的人 */
+  .detail { position: sticky; top: 72px; }
+  .detail .head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .detail .head h2 { margin: 0; }
+  .previewRow { display: flex; gap: 16px; align-items: flex-start; margin: 12px 0 4px; flex-wrap: wrap; }
+  .previewRow .info { flex: 1; min-width: 160px; font-size: 13px; color: var(--muted); }
+  .previewRow .info b { color: var(--text); }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .fam { display: grid; grid-template-columns: 1.1fr 1fr 1.2fr; gap: 6px; margin-bottom: 6px; }
+  .meds { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .checks { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+  .checks label { margin: 0; display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 400;
+    border: 1px solid var(--border); border-radius: 99px; padding: 3px 10px 3px 6px; cursor: pointer; }
+  .checks label small { font-size: 11px; }
+  .checks label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+  .checks label:has(input:disabled) { opacity: .4; cursor: default; }
+  .inline { display: flex; align-items: center; gap: 6px; font-weight: 400; }
+  details { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px; }
+  details summary { cursor: pointer; font-size: 14px; font-weight: 600; }
+  .phone { width: 280px; max-width: 100%; border: 8px solid #111; border-radius: 24px; background: #111; overflow: hidden; margin-top: 10px; }
+  .phone .help { border-radius: 16px; font-size: 14px; }
+  .ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); }
+
+  /* 贴纸：Avery 94230，1.5″ × 2.75″。印刷用固定配色，深红打印更饱满 */
+  .sticker { --red: #c8102e; width: 38.1mm; height: 69.85mm; background: #fff; color: #111; flex: none;
+    border: 0.6mm solid var(--red); border-radius: 3mm; overflow: hidden; display: flex; flex-direction: column;
+    font-family: "Helvetica Neue", Arial, "PingFang SC", sans-serif; box-shadow: 0 1px 6px rgba(0,0,0,.12); }
+  .sticker svg { display: block; }
+  .s-head { background: var(--red); color: #fff; text-align: center; line-height: 1.1; padding: 1.4mm 0 1.2mm; }
+  .s-head b { display: block; font-weight: 900; letter-spacing: .05em; font-size: 4.8mm; }
+  .s-head span { display: block; font-weight: 600; font-size: 2.3mm; margin-top: .3mm; }
+  .s-say { font-weight: 800; line-height: 1.15; text-align: center; font-size: 3mm; margin: 1.5mm .8mm 1.1mm; }
+  .s-qr { display: flex; flex-direction: column; align-items: center; }
+  .s-cap { font-weight: 600; color: #333; text-align: center; line-height: 1.2; font-size: 2.2mm; margin-top: .5mm; }
+  .s-ice { margin-top: auto; border-top: 0.3mm solid #ddd; text-align: center; font-weight: 900; white-space: nowrap; line-height: 1.15;
+    padding: 1.1mm 0 1.3mm; font-size: 3.9mm; }
+  .s-ice small { display: block; color: var(--red); font-weight: 800; letter-spacing: .04em; font-size: 2mm; }
+
+  /* 打印预览：按 Avery 94230 的标签位置排版，每页一张 Letter 纸 */
+  #sheet { display: none; }
+  body.sheet-mode .top, body.sheet-mode .layout { display: none; }
+  body.sheet-mode #sheet { display: block; }
+  .sheetBar { position: sticky; top: 0; z-index: 1; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border); }
+  .sheetBar input[type=number] { width: 70px; padding: 4px 6px; }
+  .sheetBar .grow { flex: 1; color: var(--muted); font-size: 13px; }
+  .page { position: relative; width: 8.5in; height: 11in; background: #fff; color: #111; margin: 16px auto; box-shadow: 0 2px 12px rgba(0,0,0,.15); overflow: hidden; }
+  .page .label { position: absolute; }
+  .page.outline .label { outline: 0.2mm dashed #999; }
+  .page .rot { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  .page .sticker { box-shadow: none; }
+  .page .lcap { position: absolute; font-size: 2.3mm; line-height: 1.2; color: #555; white-space: nowrap; }
+  .page .note { position: absolute; left: 1in; right: 1in; top: 4mm; font-size: 2.6mm; line-height: 1.35; color: #444; display: flex; gap: 6mm; }
+  .page .note b { color: #111; }
+  .ruler { flex: none; text-align: center; font-size: 2.3mm; }
+  .ruler i { display: block; width: 50mm; height: 2.5mm; border: 0.3mm solid #111; border-top: none;
+    background: repeating-linear-gradient(90deg, #111 0 0.3mm, transparent 0.3mm 10mm); }
+
+  @media print {
+    body { background: #fff; }
+    .top, .layout, .sheetBar { display: none !important; }
+    .page { margin: 0; box-shadow: none; break-after: page; }
+  }
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="brand">一页通 · 贴纸工具 <small>Sticker Tool</small><a href="../">入口 Home</a></div>
+  <div class="progress">
+    <div class="bar"><i id="barFill" style="width:0"></i></div>
+    <span class="count" id="count"></span>
+  </div>
+  <button class="primary" id="printSheet">🖨 打印本张 Print sheet</button>
+  <button id="clearSheet">清空本张 Clear</button>
+</div>
+
+<div class="layout">
+  <section>
+    <div class="panel">
+      <h2>快速添加 <small>Quick add · 输入名字后按 Enter</small></h2>
+      <div class="seg" id="tpl"></div>
+      <div class="quick">
+        <div><label for="qEn">英文 / 拼音姓名 <small>Name *</small></label><input id="qEn" placeholder="Wang Li" autocomplete="off"></div>
+        <div><label for="qZh">中文姓名 <small>Chinese</small></label><input id="qZh" placeholder="王丽" autocomplete="off"></div>
+        <div><label for="qRel">称呼 <small>Relation</small></label><select id="qRel"></select></div>
+        <div><label for="qPhone">ICE 电话 <small>Phone</small></label><input id="qPhone" type="tel" placeholder="(626) 555-0101" autocomplete="off"></div>
+        <div class="add"><button class="primary" id="qAdd">添加 Add ↵</button></div>
+      </div>
+      <p class="msg" id="qMsg"></p>
+      <p class="hint">资料只在这个页面里，不上传、不保存；刷新或关闭页面就清空。Data stays on this page only.</p>
+    </div>
+
+    <div class="panel">
+      <h2>本张名单 <small>This sheet · 点一行可修改详细资料 Click a row to edit</small></h2>
+      <div id="rows"></div>
+      <div class="tableActions">
+        <button id="demo">加入示例 Add demo</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel detail" id="detail"></section>
+</div>
+<div id="sheet"></div>
+
+<script src="../shared.js?v=2"></script>
+<script>
+const SHEET_MAX = 10;  // 一张 Avery 94230 有 10 个标签
+const QR_MM = 30;      // 贴纸上二维码边长（含留白）
+const QUIET = 2;       // 二维码四周留白（格），贴纸本身是白底
+const EC = "Q";        // 纠错等级，约 25% 被磨损仍能识别
+
+// 模板：选好后，快速添加的每个人都套用这些设定；以后要加模板（例如常见病史组合）就加在这里
+const TEMPLATES = {
+  M: { label: "普通话模板 Mandarin", lang: "M", withZh: true },
+  C: { label: "粤语模板 Cantonese", lang: "C", withZh: true },
+};
+
+// 示例资料均为虚构；电话使用 555-01xx 虚构号段
+const DEMOS = [
+  { nameEn: "Wang Li", nameZh: "王丽", lang: "M", cond: ["HTN", "DM"], alg: ["PCN"], meds: ["Metformin", "Amlodipine", ""],
+    fam: [["D", "Mei", "6265550101"], ["S", "David", "6265550102"]] },
+  { nameEn: "Chan Kwok Keung", nameZh: "陈国强", lang: "C", cond: ["AF", "BT", "DEM"], alg: ["ASA", "SHF"], meds: ["Warfarin", "Lisinopril", "Donepezil"],
+    fam: [["W", "", "6265550110"], ["D", "Karen", "6265550111"]] },
+  { nameEn: "Li Xiuying", nameZh: "李秀英", lang: "M", withZh: false, fam: [["D", "Lin", "6265550121"], ["", "", ""]] },
+];
+
+const $ = id => document.getElementById(id);
+qrcode.stringToBytes = qrcode.stringToBytesFuncs["UTF-8"];
+
+// ---------- 资料 ----------
+let people = [];   // 本张纸上的人，只在内存里，刷新或关闭页面即清空
+let selected = -1;
+let tpl = "M";
+
+const newPerson = (o = {}) => ({ nameEn: "", nameZh: "", withZh: true, lang: "M", cond: [], condOther: "", alg: [], algOther: "",
+  meds: ["", "", ""], fam: [["F", "", ""], ["", "", ""]], ...o });
+
+function toData(p) {
+  const other = s => token(s) ? [token(s)] : [];
+  return {
+    nameEn: token(p.nameEn), nameZh: p.withZh ? p.nameZh.trim() : "", lang: p.lang,
+    cond: [...p.cond, ...other(p.condOther)].slice(0, LIMIT.cond),
+    alg: [...p.alg, ...other(p.algOther)].slice(0, LIMIT.alg),
+    med: p.meds.map(token).filter(Boolean).slice(0, LIMIT.med),
+    fam: p.fam.filter(f => digits(f[2]).length === 10).map(([r, n, ph]) => ({ r: r || "F", n: token(n), p: digits(ph) })),
+  };
+}
+
+// 不能打印的原因；空数组表示可以打印
+function problems(p) {
+  const e = [];
+  if (!token(p.nameEn)) e.push("缺英文名");
+  if (digits(p.fam[0][2]).length !== 10) e.push("缺电话");
+  if (p.fam[1][2] && digits(p.fam[1][2]).length !== 10) e.push("联系人 2 电话不对");
+  return e;
+}
+const displayName = p => [p.nameZh.trim(), p.nameEn.trim()].filter(Boolean).join(" ") || "（未命名）";
+
+// ---------- 二维码 ----------
+// 把网址切成几段：能用字母数字模式的连续字符一段，其余用字节模式。
+// 每段有十几个 bit 的段头，太短的字母数字段不划算，并入相邻的字节段
+function qrSegments(text) {
+  const runs = [];
+  for (const ch of text) {
+    const mode = /[0-9A-Z $%*+\-./:]/.test(ch) ? "Alphanumeric" : "Byte";
+    if (runs.length && runs[runs.length - 1][1] === mode) runs[runs.length - 1][0] += ch;
+    else runs.push([ch, mode]);
+  }
+  const segs = [];
+  for (const [t, mode] of runs) {
+    const m = mode === "Alphanumeric" && t.length < 8 ? "Byte" : mode;
+    if (segs.length && segs[segs.length - 1][1] === m) segs[segs.length - 1][0] += t;
+    else segs.push([t, m]);
+  }
+  return segs;
+}
+
+function buildQR(d, ec = EC) {
+  const qr = qrcode(0, ec);
+  for (const [t, mode] of qrSegments(`${BASE_URL}#${encode(d)}`)) qr.addData(t, mode);
+  qr.make();
+  const n = qr.getModuleCount();
+  let p = "";
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) p += `M${c} ${r}h1v1h-1z`;
+  return { n, version: (n - 17) / 4, path: p, moduleMm: QR_MM / (n + QUIET * 2) };
+}
+
+const qrSvg = q => { const t = q.n + QUIET * 2;
+  return `<svg width="${QR_MM}mm" height="${QR_MM}mm" viewBox="${-QUIET} ${-QUIET} ${t} ${t}" shape-rendering="crispEdges"><rect x="${-QUIET}" y="${-QUIET}" width="${t}" height="${t}" fill="#fff"/><path d="${q.path}" fill="#000"/></svg>`; };
+
+function stickerHTML(d, q) {
+  return `
+    <div class="s-head"><b>EMERGENCY</b><span>Medical info · 紧急求助</span></div>
+    <div class="s-say">I speak ${d.lang === "C" ? "Cantonese" : "Chinese"}.<br>Limited English.</div>
+    <div class="s-qr">${qrSvg(q)}<div class="s-cap">Scan with phone camera<br>for medical info &amp; family</div></div>
+    <div class="s-ice"><small>EMERGENCY CONTACT · ICE</small>${fmtPhone(d.fam[0]?.p || "")}</div>`;
+}
+
+// 经验值：每格 ≥ 0.5mm 普通激光打印、旧手机都比较稳；0.4–0.5mm 需要实测
+const grade = mm => mm >= 0.5 ? ["ok", "容易扫 Easy to scan"] : mm >= 0.4 ? ["warn", "需实测 Test before use"] : ["bad", "太密，减少资料 Too dense"];
+
+// ---------- 顶栏和名单 ----------
+function renderTop() {
+  const ready = people.filter(p => !problems(p).length).length;
+  $("barFill").style.width = `${people.length / SHEET_MAX * 100}%`;
+  $("count").innerHTML = `本张 <b>${people.length}</b> / ${SHEET_MAX} 人 · 可打印 <b>${ready}</b>`;
+  $("printSheet").disabled = !ready;
+  $("clearSheet").disabled = !people.length;
+  $("qAdd").disabled = people.length >= SHEET_MAX;
+  $("demo").disabled = people.length >= SHEET_MAX;
+}
+
+function renderRows() {
+  if (!people.length) {
+    $("rows").innerHTML = `<div class="empty">还没有人。用上面的快速添加，一张纸最多 ${SHEET_MAX} 人。<br>No one yet. Use Quick add above.</div>`;
+  } else {
+    $("rows").innerHTML = `<table>
+      <thead><tr><th>#</th><th>姓名 Name</th><th>语言</th><th>ICE 电话</th><th>状态 Status</th><th></th></tr></thead>
+      <tbody>${people.map((p, i) => {
+        const e = problems(p);
+        return `<tr data-i="${i}" class="${i === selected ? "sel" : ""}">
+          <td class="n">${i + 1}</td>
+          <td><span class="zh">${esc(p.nameZh)}</span>${esc(p.nameEn)}</td>
+          <td><span class="chip">${p.lang === "C" ? "粤语" : "普通话"}</span></td>
+          <td>${esc(fmtPhone(digits(p.fam[0][2]))) || "—"}</td>
+          <td>${e.length ? `<span class="st-bad">⚠ ${e.join("、")}</span>` : `<span class="st-ok">✓ 可打印</span>`}</td>
+          <td class="x"><button data-del="${i}" title="删除 Delete">✕</button></td>
+        </tr>`; }).join("")}</tbody></table>
+      <div class="slots">${people.length < SHEET_MAX ? `还能加 ${SHEET_MAX - people.length} 人` : "本张已满，请打印后清空 Sheet is full"}</div>`;
+  }
+  renderTop();
+}
+
+// ---------- 快速添加 ----------
+function renderTpl() {
+  $("tpl").innerHTML = Object.entries(TEMPLATES).map(([k, t]) =>
+    `<button data-tpl="${k}" class="${k === tpl ? "on" : ""}">${t.label}</button>`).join("");
+}
+
+function quickAdd() {
+  const say = t => { $("qMsg").textContent = t; };
+  if (people.length >= SHEET_MAX) return say("本张已满 10 人，请先打印并清空。This sheet is full.");
+  const en = $("qEn").value, ph = digits($("qPhone").value);
+  if (!token(en)) { $("qEn").focus(); return say("请输入英文 / 拼音姓名 Please enter a name"); }
+  if ($("qPhone").value.trim() && ph.length !== 10) { $("qPhone").focus(); return say("电话要是 10 位美国号码 Phone must be 10 digits"); }
+  const t = TEMPLATES[tpl];
+  people.push(newPerson({ nameEn: en.trim(), nameZh: $("qZh").value.trim(), lang: t.lang, withZh: t.withZh,
+    fam: [[$("qRel").value, "", ph], ["", "", ""]] }));
+  selected = people.length - 1;
+  for (const id of ["qEn", "qZh", "qPhone"]) $(id).value = "";
+  say(ph ? "" : "已添加。还缺电话，可以在右边补上。Added — phone still missing.");
+  renderRows(); renderDetail();
+  $("qEn").focus();
+}
+
+// ---------- 右侧：选中的人 ----------
+function renderDetail() {
+  const p = people[selected];
+  if (!p) {
+    $("detail").innerHTML = `<h2>详细资料 <small>Details</small></h2>
+      <div class="empty">在左边名单里点一个人，<br>就能在这里补充病史、过敏、用药，并预览贴纸。<br><br>Select a person to edit details and preview the sticker.</div>`;
+    return;
+  }
+  const chk = (dict, name, on) => Object.entries(dict).map(([k, [en, zh]]) =>
+    `<label><input type="checkbox" name="${name}" value="${k}" ${on.includes(k) ? "checked" : ""}>${esc(zh)} <small>${esc(en)}</small></label>`).join("");
+  const rel = cur => `<option value="">称呼 Relation</option>` + Object.entries(REL).map(([k, [en, zh]]) =>
+    `<option value="${k}" ${k === cur ? "selected" : ""}>${zh} ${en}</option>`).join("");
+  $("detail").innerHTML = `
+    <div class="head"><h2>第 ${selected + 1} 位 · ${esc(displayName(p))}</h2><small id="dStatus"></small></div>
+    <div class="previewRow">
+      <div class="sticker" id="dSticker"></div>
+      <div class="info" id="dInfo"></div>
+    </div>
+    <form id="dForm" autocomplete="off" onsubmit="return false">
+      <div class="row2">
+        <div><label for="dEn">英文 / 拼音姓名 <small>Name *</small></label><input id="dEn" value="${esc(p.nameEn)}"></div>
+        <div><label for="dZh">中文姓名 <small>Chinese</small></label><input id="dZh" value="${esc(p.nameZh)}"></div>
+      </div>
+      <div class="row2">
+        <div><label for="dLang">语言 <small>Language</small></label>
+          <select id="dLang"><option value="M" ${p.lang === "M" ? "selected" : ""}>普通话 Mandarin</option><option value="C" ${p.lang === "C" ? "selected" : ""}>粤语 Cantonese</option></select></div>
+        <div><label>&nbsp;</label><label class="inline" style="margin:10px 0 0"><input type="checkbox" id="dWithZh" ${p.withZh ? "checked" : ""}> 二维码里放中文名 <small>Chinese name in QR</small></label></div>
+      </div>
+      <label>联系人 <small>Contacts · 第 1 位印在贴纸上 The first is printed (ICE)</small></label>
+      ${[0, 1].map(i => `<div class="fam">
+        <select data-f="${i}" data-k="r">${rel(p.fam[i][0])}</select>
+        <input data-f="${i}" data-k="n" placeholder="英文名 Name" value="${esc(p.fam[i][1])}">
+        <input data-f="${i}" data-k="p" type="tel" placeholder="电话 Phone" value="${esc(fmtPhone(digits(p.fam[i][2])) || p.fam[i][2])}">
+      </div>`).join("")}
+
+      <details ${p.cond.length || p.alg.length || p.meds.some(Boolean) || p.condOther || p.algOther ? "open" : ""}>
+        <summary>病史 · 过敏 · 用药 <small>Medical info（选填 optional）</small></summary>
+        <label>病史 / 急救要点 <small>Conditions · 最多 max 3</small></label>
+        <div class="checks">${chk(COND, "cond", p.cond)}</div>
+        <input id="dCondOther" placeholder="其他（英文）Other (English)" value="${esc(p.condOther)}" style="margin-top:6px">
+        <label>过敏 <small>Allergies · 最多 max 2</small></label>
+        <div class="checks">${chk(ALG, "alg", p.alg)}</div>
+        <input id="dAlgOther" placeholder="其他（英文）Other (English)" value="${esc(p.algOther)}" style="margin-top:6px">
+        <label>用药 <small>Medications · 英文 English, 最多 max 3</small></label>
+        <div class="meds">${[0, 1, 2].map(i => `<input data-med="${i}" value="${esc(p.meds[i])}">`).join("")}</div>
+      </details>
+
+      <details>
+        <summary>扫码后看到的页面 <small>What people see after scanning</small></summary>
+        <div class="phone"><div class="help" id="dHelp"></div></div>
+      </details>
+    </form>`;
+  $("dForm").addEventListener("input", onDetailInput);
+  $("dForm").addEventListener("change", onDetailInput);
+  enforceLimits();
+  refreshPreview();
+}
+
+// 勾选数量到上限后，其余选项变灰，避免超出二维码容量
+function enforceLimits() {
+  for (const [name, other, max] of [["cond", "dCondOther", LIMIT.cond], ["alg", "dAlgOther", LIMIT.alg]]) {
+    const boxes = [...document.querySelectorAll(`#dForm [name=${name}]`)];
+    const used = boxes.filter(b => b.checked).length + (token($(other).value) ? 1 : 0);
+    boxes.forEach(b => { b.disabled = !b.checked && used >= max; });
+  }
+}
+
+function onDetailInput() {
+  const p = people[selected];
+  if (!p) return;
+  const f = (i, k) => document.querySelector(`#dForm [data-f="${i}"][data-k="${k}"]`).value;
+  Object.assign(p, {
+    nameEn: $("dEn").value, nameZh: $("dZh").value, lang: $("dLang").value, withZh: $("dWithZh").checked,
+    cond: [...document.querySelectorAll("#dForm [name=cond]:checked")].map(c => c.value), condOther: $("dCondOther").value,
+    alg: [...document.querySelectorAll("#dForm [name=alg]:checked")].map(c => c.value), algOther: $("dAlgOther").value,
+    meds: [...document.querySelectorAll("#dForm [data-med]")].map(el => el.value),
+    fam: [0, 1].map(i => [f(i, "r"), f(i, "n"), f(i, "p")]),
+  });
+  enforceLimits();
+  renderRows();
+  // 打字时不必每个键都重画二维码，停顿一下再画，减轻平板负担
+  clearTimeout(onDetailInput.t);
+  onDetailInput.t = setTimeout(refreshPreview, 150);
+}
+
+function refreshPreview() {
+  const p = people[selected];
+  if (!p || !$("dSticker")) return;
+  const d = toData(p), q = buildQR(d), e = problems(p);
+  const [cls, txt] = grade(q.moduleMm);
+  $("dSticker").innerHTML = stickerHTML(d, q);
+  $("dStatus").innerHTML = e.length ? `<span class="st-bad">⚠ ${e.join("、")}</span>` : `<span class="st-ok">✓ 可打印 Ready</span>`;
+  $("dInfo").innerHTML = `<b>贴纸实际大小</b><br>Actual size · 1.5″ × 2.75″<br><br>
+    二维码 QR V${q.version}<br>每格 ${q.moduleMm.toFixed(2)} mm · <span class="${cls}">${txt}</span><br><br>
+    请和长者或家属一起核对。<br>Check with the senior or family.`;
+  $("dHelp").innerHTML = helpHTML(d);
+}
+
+// ---------- 打印预览：Avery 94230 ----------
+// Letter 纸，2 列 × 5 行共 10 个，标签在纸上横放 2.75″ × 1.5″。
+// 页边距来自 Avery 规格（上下 0.625″、左右 1″），列距和行距由此推算，需用实物核对，偏差用 X / Y 偏移校正
+const IN = 25.4;
+const AVERY_94230 = { cols: 2, rows: 5, w: 2.75 * IN, h: 1.5 * IN, left: 1 * IN, top: 0.625 * IN, pitchX: 3.75 * IN, pitchY: 2.0625 * IN };
+const sheetOpts = { outline: false, offX: 0, offY: 0 };
+let sheetItems = [], sheetNote = "";
+
+// 竖版贴纸旋转 90° 放进横放的标签；揭下来贴到手机上时方向无所谓
+function pagesHTML() {
+  const L = AVERY_94230, per = L.cols * L.rows, pages = [];
+  for (let p = 0; p < sheetItems.length; p += per) {
+    const cells = sheetItems.slice(p, p + per).map((it, i) => {
+      const x = L.left + (i % L.cols) * L.pitchX + sheetOpts.offX;
+      const y = L.top + Math.floor(i / L.cols) * L.pitchY + sheetOpts.offY;
+      return `<div class="label" style="left:${x}mm;top:${y}mm;width:${L.w}mm;height:${L.h}mm">
+          <div class="rot" style="transform:translate(0,${L.h}mm) rotate(-90deg)"><div class="sticker">${stickerHTML(it.d, it.q)}</div></div>
+        </div>
+        <div class="lcap" style="left:${x}mm;top:${y + L.h + 0.8}mm">${it.cap}</div>`;
+    }).join("");
+    pages.push(`<div class="page${sheetOpts.outline ? " outline" : ""}">${p === 0 ? sheetNote : ""}${cells}</div>`);
+  }
+  return pages.join("");
+}
+
+function showSheet(items, note, backable) {
+  sheetItems = items; sheetNote = note;
+  document.body.classList.add("sheet-mode");
+  window.scrollTo(0, 0);
+  $("pageSize").textContent = "@media print { @page { size: letter; margin: 0; } }";
+  $("sheet").innerHTML = `
+    <div class="sheetBar">
+      ${backable ? `<button id="sheetBack">← 返回修改 Back</button>` : `<a href="../">← 入口 Home</a>`}
+      <button class="primary" id="sheetPrint">🖨 打印 Print</button>
+      <label class="inline"><input type="checkbox" id="sheetOutline" ${sheetOpts.outline ? "checked" : ""}> 印标签轮廓（对齐测试用）Outlines</label>
+      <label class="inline">偏移 Offset X <input type="number" step="0.5" id="offX" value="${sheetOpts.offX}"> Y <input type="number" step="0.5" id="offY" value="${sheetOpts.offY}"> mm</label>
+      <span class="grow">${items.length} 张贴纸 · 打印选"实际大小 / 100%"、边距"无" Print at 100%, no margins</span>
+    </div>
+    <div id="pages">${pagesHTML()}</div>`;
+  const redraw = () => { $("pages").innerHTML = pagesHTML(); };
+  $("sheetPrint").onclick = () => window.print();
+  $("sheetOutline").onchange = e => { sheetOpts.outline = e.target.checked; redraw(); };
+  $("offX").oninput = e => { sheetOpts.offX = +e.target.value || 0; redraw(); };
+  $("offY").oninput = e => { sheetOpts.offY = +e.target.value || 0; redraw(); };
+  if (backable) $("sheetBack").onclick = () => {
+    document.body.classList.remove("sheet-mode"); $("sheet").innerHTML = ""; $("pageSize").textContent = "";
+  };
+}
+
+function printSheet() {
+  const ready = people.filter(p => !problems(p).length);
+  const skip = people.length - ready.length;
+  if (skip && !confirm(`有 ${skip} 人资料不完整，这次不会打印。继续吗？\n${skip} incomplete — they will be skipped. Continue?`)) return;
+  // 只有打印时才给所有人生成二维码
+  showSheet(ready.map(p => ({ d: toData(p), q: buildQR(toData(p)), cap: esc(displayName(p)) })), "", true);
+}
+
+function clearSheet() {
+  if (!confirm(`清空本张 ${people.length} 人的资料？请确认已经打印好、贴好。\nClear all ${people.length} people on this sheet?`)) return;
+  people = []; selected = -1;
+  renderRows(); renderDetail();
+  $("qEn").focus();
+}
+
+// 打印测试页：3 组示例资料 × 4 种纠错等级，用来核对纸张对齐和扫码的密度下限
+function openTestSheet() {
+  const items = [];
+  for (const demo of DEMOS) {
+    const p = newPerson(demo), d = toData(p);
+    for (const ec of ["L", "M", "Q", "H"]) {
+      const q = buildQR(d, ec);
+      items.push({ d, q, cap: `${esc(p.nameZh)}（示例）· 纠错 ${ec} · V${q.version} · 每格 ${q.moduleMm.toFixed(2)} mm` });
+    }
+  }
+  sheetOpts.outline = true;
+  showSheet(items, `<div class="note"><div><b>打印测试 Print test · Avery 94230</b><br>
+    先用普通纸打印，叠在标签纸上对着光看是否对齐；再用标签纸打印，用不同手机逐张扫码。<br>
+    Print on plain paper first and hold it over a label sheet to check alignment.</div>
+    <div class="ruler"><i></i>这条线应正好 50 mm</div></div>`, false);
+}
+
+// ---------- 启动 ----------
+if (new URLSearchParams(location.search).has("sheet")) {
+  openTestSheet();
+} else {
+  renderTpl();
+  // 快速添加栏位窄，称呼只显示中文；英文在详细资料里能看到
+  $("qRel").innerHTML = Object.entries(REL).map(([k, [en, zh]]) => `<option value="${k}" title="${en}" ${k === "F" ? "selected" : ""}>${zh}</option>`).join("");
+  $("tpl").onclick = e => { const b = e.target.closest("[data-tpl]"); if (b) { tpl = b.dataset.tpl; renderTpl(); $("qEn").focus(); } };
+  for (const id of ["qEn", "qZh", "qRel", "qPhone"]) $(id).addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); quickAdd(); } });
+  $("qPhone").addEventListener("blur", () => { const d = digits($("qPhone").value); if (d.length === 10) $("qPhone").value = fmtPhone(d); });
+  $("qAdd").onclick = quickAdd;
+  $("rows").onclick = e => {
+    const del = e.target.closest("[data-del]");
+    if (del) {
+      const i = +del.dataset.del;
+      if (!confirm(`删除第 ${i + 1} 位 ${displayName(people[i])}？Delete?`)) return;
+      people.splice(i, 1);
+      selected = selected === i ? -1 : selected > i ? selected - 1 : selected;
+      renderRows(); renderDetail(); return;
+    }
+    const tr = e.target.closest("tr[data-i]");
+    if (tr) { selected = +tr.dataset.i; renderRows(); renderDetail(); }
+  };
+  $("demo").onclick = () => {
+    for (const d of DEMOS) if (people.length < SHEET_MAX) people.push(newPerson({ ...d }));
+    selected = people.length - 1;
+    renderRows(); renderDetail();
+  };
+  $("printSheet").onclick = printSheet;
+  $("clearSheet").onclick = clearSheet;
+  // 名单里还有人时离开页面要提醒，避免资料没打印就丢了
+  window.addEventListener("beforeunload", e => { if (people.length) e.preventDefault(); });
+  renderRows(); renderDetail();
+  $("qEn").focus();
+}
+</script>
+</body>
+</html>

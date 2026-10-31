@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>Emergency Info · 紧急信息</title>
+<link rel="icon" href="data:,">
+<!-- 共用文件带版本号：改了 shared.* 就把 v 加 1，避免浏览器用旧的缓存 -->
+<link rel="stylesheet" href="shared.css?v=2">
+<style>
+  html, body { margin: 0; background: #fff; }
+  .help { max-width: 480px; margin: 0 auto; min-height: 100vh; box-sizing: border-box; }
+</style>
+</head>
+<body>
+<div class="help" id="help"></div>
+<script src="shared.js?v=2"></script>
+<script>
+// 求助页：资料只从网址 # 后面读取，# 后面的内容浏览器不会发给服务器
+// 示例资料为虚构，电话使用 555-01xx 虚构号段
+const DEMO_HASH = "1*WANG-LI*%E7%8E%8B%E4%B8%BD*M*HTN.DM*PCN*METFORMIN.AMLODIPINE*D6265550101MEI.S6265550102DAVID";
+
+function show() {
+  const el = document.getElementById("help");
+  if (location.hash.length <= 1) {
+    // 没有资料时是入口页：路人扫码打开的网址一定带 #资料，看不到这里；志愿者只要记住这个网址
+    el.innerHTML = `
+      <div class="alert"><b>Emergency Info</b><span>紧急信息</span></div>
+      <p class="msg">This page shows a person's emergency information when opened from the QR code on their sticker.</p>
+      <p class="msg zh">用手机相机扫描贴纸上的二维码，这里会显示长者的紧急资料。</p>
+      <h2 class="hub-title">志愿者入口 Volunteers</h2>
+      <a class="hub" href="tool/"><b>📝 贴纸工具</b><span>录入资料、预览、打印贴纸 · Sticker tool</span></a>
+      <a class="hub" href="tool/?sheet"><b>🖨 打印测试页</b><span>核对纸张对齐、测试扫码 · Print test</span></a>
+      <a class="hub" href="#${DEMO_HASH}"><b>👀 示例求助页</b><span>扫码后路人看到的页面 · Demo</span></a>
+      <ol class="steps">
+        <li>打开贴纸工具，选模板（普通话 / 粤语）</li>
+        <li>每位长者输入名字和电话，按 Enter 加入</li>
+        <li>满 10 人（一张 Avery 94230）就打印</li>
+        <li>核对、贴好后，手动清空本张，再录下一批</li>
+      </ol>`;
+    return;
+  }
+  try {
+    el.innerHTML = helpHTML(decode(location.hash));
+  } catch {
+    el.innerHTML = `
+      <div class="alert"><b>Could not read this QR code</b><span>无法读取这个二维码</span></div>
+      <p class="msg">Please call the emergency contact number printed on the sticker, or call 911.</p>
+      <p class="msg zh">请拨打贴纸上印的紧急联系电话，或拨打 911。</p>
+      <a class="call e911" href="tel:911">📞 Call 911</a>`;
+  }
+}
+show();
+// 同一个分页里再扫另一张贴纸时，只有 # 变化，页面不会重新载入
+window.addEventListener("hashchange", show);
+</script>
+</body>
+</html>

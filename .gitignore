@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+
+# 本机工具设置（Claude Code 预览服务器等），不属于项目
+.claude/
+
+# 编辑器
+.vscode/
+.idea/
+
+# 以防万一：密钥、凭证、环境变量文件绝不进仓库
+.env
+.env.*
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+
+# 本项目不保存任何长者资料；如有导出的名单或打印文件，也不进仓库
+*.csv
+*.xlsx
+*.pdf

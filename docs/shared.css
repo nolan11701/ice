@@ -1,0 +1,22 @@
+/* 求助页样式：路人在户外用手机看，固定白底高对比，不随系统深浅色切换 */
+.help { background: #fff; color: #111; padding: 16px 14px 20px; font: 16px/1.4 -apple-system, BlinkMacSystemFont, Arial, "PingFang SC", sans-serif; }
+.help .alert { background: #c8102e; color: #fff; border-radius: 10px; padding: 12px 14px; }
+.help .alert b { display: block; font-size: 20px; line-height: 1.2; }
+.help .alert span { font-size: 15px; }
+.help .line { margin-top: 12px; font-size: 16px; }
+.help .line .k { font-weight: 700; }
+.help .zh { color: #555; font-size: 14px; }
+.help .call { display: block; text-align: center; text-decoration: none; font-weight: 700; font-size: 17px;
+  padding: 12px; border-radius: 10px; margin-top: 10px; background: #15803d; color: #fff; }
+.help .call span { display: block; font-weight: 400; font-size: 14px; margin-top: 2px; }
+.help .call.e911 { background: #c8102e; }
+.help .foot { font-size: 12px; color: #777; margin-top: 16px; text-align: center; }
+.help .msg { margin-top: 12px; font-size: 16px; }
+
+/* 入口页（网址没有资料时） */
+.help .hub-title { font-size: 15px; margin: 28px 0 8px; padding-top: 16px; border-top: 1px solid #e5e5e5; }
+.help .hub { display: block; text-decoration: none; color: #111; border: 1px solid #ddd; border-radius: 10px; padding: 12px 14px; margin-top: 8px; }
+.help .hub b { display: block; font-size: 17px; }
+.help .hub span { font-size: 13px; color: #666; }
+.help .steps { font-size: 14px; color: #444; padding-left: 20px; margin: 14px 0 0; }
+.help .steps li { margin-top: 4px; }

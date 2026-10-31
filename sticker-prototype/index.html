@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>一页通贴纸原型</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style id="pageSize"></style>
+<style>
+  :root {
+    --bg: #f5f5f4; --panel: #ffffff; --text: #1c1917; --muted: #78716c; --border: #e7e5e4;
+    --accent: #2563eb; --code-bg: #fafaf9; --ok: #15803d; --warn: #b45309; --bad: #dc2626;
+    --server: #dbeafe; --local: #fef3c7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0c0a09; --panel: #1c1917; --text: #f5f5f4; --muted: #a8a29e; --border: #292524;
+      --accent: #60a5fa; --code-bg: #0c0a09; --ok: #4ade80; --warn: #fbbf24; --bad: #f87171;
+      --server: #1e3a5f; --local: #422006;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0c0a09; --panel: #1c1917; --text: #f5f5f4; --muted: #a8a29e; --border: #292524;
+    --accent: #60a5fa; --code-bg: #0c0a09; --ok: #4ade80; --warn: #fbbf24; --bad: #f87171;
+    --server: #1e3a5f; --local: #422006;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", sans-serif; }
+  header { padding: 20px 24px 4px; }
+  header h1 { margin: 0; font-size: 20px; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  main { display: grid; grid-template-columns: minmax(320px, 400px) 1fr; gap: 16px; padding: 16px 24px 32px; align-items: start; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; padding: 12px 16px 24px; } header { padding: 16px 16px 4px; } }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; min-width: 0; }
+  .panel + .panel { margin-top: 16px; }
+  h2 { margin: 0 0 10px; font-size: 13px; letter-spacing: .04em; color: var(--muted); }
+  h3 { margin: 16px 0 6px; font-size: 13px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+  select, input[type=text], input:not([type]), input[type=number] { width: 100%; font: inherit; color: var(--text); background: var(--code-bg);
+    border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .fam { display: grid; grid-template-columns: 128px 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+  .meds { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .checks { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+  .checks label { margin: 0; display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--text);
+    border: 1px solid var(--border); border-radius: 99px; padding: 3px 10px 3px 6px; cursor: pointer; }
+  .checks label:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+  .inline { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); margin-top: 10px; }
+  .presets { display: flex; gap: 6px; flex-wrap: wrap; }
+  button { font: inherit; border: 1px solid var(--border); background: var(--panel); color: var(--text);
+    padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+  .hint { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
+  .error { color: var(--warn); font-size: 12px; white-space: pre-wrap; margin: 10px 0 0; }
+
+  .previews { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+  .stat { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+  .stat b { display: block; font-size: 17px; }
+  .stat > span { font-size: 12px; color: var(--muted); }
+  .ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  .tablewrap { overflow-x: auto; }
+  pre { margin: 0; background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px;
+    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; overflow: auto; white-space: pre-wrap; word-break: break-all; }
+  .url { font: 12px/1.6 ui-monospace, Menlo, monospace; word-break: break-all; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .url .srv { background: var(--server); padding: 2px 4px; }
+  .url .loc { background: var(--local); padding: 2px 4px; }
+  .legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 6px; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+
+  /* 贴纸：尺寸由 JS 写入 --w / --h（mm），白底，不随主题切换 */
+  .stickerWrap { display: flex; gap: 16px; align-items: flex-end; }
+  .phoneBack { width: 72mm; height: 148mm; border-radius: 9mm; background: #3f3f46; position: relative; flex: none;
+    display: flex; align-items: flex-end; justify-content: center; padding-bottom: 14mm; }
+  .phoneBack .cam { position: absolute; top: 5mm; left: 5mm; width: 26mm; height: 26mm; border-radius: 6mm; background: #27272a; }
+  /* 印刷用固定配色：深红打印更饱满；红框同时是裁切线，贴在深色手机壳上也看得清边界 */
+  .sticker { --red: #c8102e; width: calc(var(--w) * 1mm); height: calc(var(--h) * 1mm); background: #fff; color: #111;
+    border: 0.6mm solid var(--red); border-radius: 3mm; overflow: hidden; display: flex; flex-direction: column; flex: none;
+    font-family: "Helvetica Neue", Arial, "PingFang SC", sans-serif; }
+  .sticker svg { display: block; }
+  .s-head { background: var(--red); color: #fff; text-align: center; line-height: 1.1; }
+  .s-head b { display: block; font-weight: 900; letter-spacing: .05em; }
+  .s-head span { display: block; font-weight: 600; }
+  .s-say { font-weight: 800; line-height: 1.15; text-align: center; }
+  .s-qr { display: flex; flex-direction: column; align-items: center; }
+  .s-cap { font-weight: 600; color: #333; text-align: center; line-height: 1.2; }
+  .s-zh { text-align: center; color: #333; font-weight: 600; }
+  .s-ice { margin-top: auto; border-top: 0.3mm solid #ddd; text-align: center; font-weight: 900; white-space: nowrap; line-height: 1.15; }
+  .s-ice small { display: block; color: var(--red); font-weight: 800; letter-spacing: .04em; }
+
+  /* 竖版贴纸 45×68：贴在摄像头下方，手机竖放时正好正着读 */
+  .portrait .s-head { padding: 1.4mm 0 1.2mm; } .portrait .s-head b { font-size: 4.8mm; } .portrait .s-head span { font-size: 2.3mm; margin-top: .3mm; }
+  .portrait .s-say { font-size: 3mm; margin: 1.5mm .8mm 1.1mm; }
+  .portrait .s-cap { font-size: 2.2mm; margin-top: .5mm; }
+  .portrait .s-ice { padding: 1.1mm 0 1.3mm; font-size: 3.9mm; } .portrait .s-ice small { font-size: 2mm; }
+
+  /* 透明壳插卡 54×86：普通纸打印，夹在透明手机壳里，不怕磨不怕水 */
+  .card .s-head { padding: 2mm 0 1.6mm; } .card .s-head b { font-size: 6.8mm; } .card .s-head span { font-size: 3mm; margin-top: .5mm; }
+  .card .s-say { font-size: 4.1mm; margin: 2mm 1mm 1.6mm; }
+  .card .s-cap { font-size: 2.8mm; margin-top: .7mm; }
+  .card .s-zh { font-size: 2.8mm; margin-top: 1mm; }
+  .card .s-ice { padding: 1.6mm 0 2mm; font-size: 5.2mm; } .card .s-ice small { font-size: 2.6mm; }
+
+  /* 横版贴纸 60×38：小屏手机或摄像头模组很大的手机 */
+  .landscape .s-head { padding: 1.1mm 0; } .landscape .s-head b { display: inline; font-size: 3.4mm; } .landscape .s-head span { display: inline; font-size: 2.4mm; margin-left: 1.4mm; }
+  .landscape .s-body { flex: 1; display: flex; gap: 1.4mm; padding: 1.4mm 1.6mm; min-height: 0; }
+  .landscape .s-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .landscape .s-say { font-size: 3.1mm; text-align: left; margin: 0; }
+  .landscape .s-cap { font-size: 2.3mm; text-align: left; margin-top: 1.2mm; }
+  .landscape .s-ice { text-align: left; border-top: none; font-size: 3.2mm; } .landscape .s-ice small { font-size: 2.1mm; }
+  .stickerCap { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+  /* 求助页：模拟路人扫码后看到的样子 */
+  .phone { width: 300px; max-width: 100%; border: 10px solid #111; border-radius: 28px; background: #111; flex: none; }
+  .help { background: #fff; color: #111; border-radius: 18px; padding: 16px 14px 18px; min-height: 480px; font-family: -apple-system, Arial, "PingFang SC", sans-serif; }
+  .help .alert { background: #dc2626; color: #fff; border-radius: 10px; padding: 10px 12px; }
+  .help .alert b { display: block; font-size: 18px; line-height: 1.2; }
+  .help .alert span { font-size: 14px; opacity: .95; }
+  .help .line { margin-top: 12px; font-size: 15px; line-height: 1.35; }
+  .help .line .k { font-weight: 700; }
+  .help .zh { color: #555; font-size: 13px; }
+  .help .call { display: block; text-align: center; text-decoration: none; font-weight: 700; font-size: 16px;
+    padding: 12px; border-radius: 10px; margin-top: 10px; background: #16a34a; color: #fff; }
+  .help .call.e911 { background: #dc2626; }
+  .help .foot { font-size: 11px; color: #888; margin-top: 14px; text-align: center; }
+
+  /* 批量打印 / 打印测试：按 Avery 94230 的标签位置排版，每页一张 Letter 纸 */
+  #sheet { display: none; }
+  body.sheet-mode { background: var(--bg); }
+  body.sheet-mode header, body.sheet-mode main { display: none; }
+  body.sheet-mode #sheet { display: block; }
+  .sheetBar { position: sticky; top: 0; z-index: 1; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border); }
+  .sheetBar .grow { flex: 1; color: var(--muted); font-size: 13px; }
+  .sheetBar input { width: 64px; }
+  .page { position: relative; width: 8.5in; height: 11in; background: #fff; color: #111; margin: 16px auto; box-shadow: 0 2px 12px rgba(0,0,0,.15); overflow: hidden; }
+  .page .label { position: absolute; }
+  .page.outline .label { outline: 0.2mm dashed #999; }
+  .page .label .rot { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  .page .cap { position: absolute; font-size: 2.3mm; line-height: 1.2; color: #555; white-space: nowrap; }
+  .page .note { position: absolute; left: 1in; right: 1in; top: 2.5mm; font-size: 2.6mm; line-height: 1.35; color: #444; display: flex; gap: 6mm; align-items: flex-start; }
+  .page .note b { color: #111; }
+  .ruler { flex: none; text-align: center; font-size: 2.3mm; }
+  .ruler i { display: block; width: 50mm; height: 2.5mm; border: 0.3mm solid #111; border-top: none;
+    background: repeating-linear-gradient(90deg, #111 0 0.3mm, transparent 0.3mm 10mm); }
+
+  .batch { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
+  .batch ul { list-style: none; padding: 0; margin: 8px 0; }
+  .batch li { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .batch li button { padding: 2px 8px; font-size: 12px; }
+  .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: .5; cursor: default; }
+
+  body.help-mode header, body.help-mode main { display: none; }
+  body.help-mode #helpStandalone { display: block; }
+  #helpStandalone { display: none; max-width: 480px; margin: 0 auto; }
+  #helpStandalone .help { border-radius: 0; min-height: 100vh; }
+
+  @media print {
+    body { background: #fff; }
+    header, main > section:first-child, .no-print, .phone, .phoneBack .cam, .panel h2, .panel:not(:first-child) { display: none !important; }
+    main, .panel, .phoneBack { display: block; padding: 0; margin: 0; border: none; background: none; width: auto; height: auto; }
+    body.sheet-mode .sheetBar { display: none !important; }
+    .page { margin: 0; box-shadow: none; break-after: page; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>一页通 · 紧急贴纸原型（精简版）</h1>
+  <p>目标：贴在手机背面，用普通打印机印出来也扫得出。所以二维码里只放急救必需的资料，用最紧凑的编码。所有处理都在本页浏览器里完成，不保存、不上传。</p>
+</header>
+<main>
+  <section class="panel">
+    <h2>① 填表工具（mock data）</h2>
+    <div class="presets" id="presets"></div>
+
+    <div class="row">
+      <div><label for="nameEn">英文 / 拼音姓名</label><input id="nameEn"></div>
+      <div><label for="nameZh">中文姓名</label><input id="nameZh"></div>
+    </div>
+    <label class="inline"><input type="checkbox" id="withZh"> 二维码里也放中文名（每个汉字约多 9 个字符）</label>
+    <label for="lang">语言</label>
+    <select id="lang"><option value="M">普通话 Mandarin</option><option value="C">粤语 Cantonese</option></select>
+
+    <label>病史 / 急救要点（最多 3 项）</label>
+    <div class="checks" id="cond"></div>
+    <input id="condOther" placeholder="其他（英文，可选）" style="margin-top:6px">
+
+    <label>过敏（最多 2 项）</label>
+    <div class="checks" id="alg"></div>
+    <input id="algOther" placeholder="其他（英文，可选）" style="margin-top:6px">
+
+    <label>用药（最多 3 种，英文药名）</label>
+    <div class="meds">
+      <input data-med="0"><input data-med="1"><input data-med="2">
+    </div>
+
+    <label>求助页上的联系人（最多 2 位：称呼 / 英文名（可选） / 电话）</label>
+    <div id="family"></div>
+    <p class="hint">第 1 位的电话印在贴纸表面作为 ICE。</p>
+
+    <div class="row">
+      <div>
+        <label for="size">贴纸版式</label>
+        <select id="size">
+          <option value="portrait">竖版贴纸 1.5″ × 2.75″（Avery 94230，推荐）</option>
+          <option value="landscape">横版贴纸 60 × 38 mm</option>
+          <option value="card">透明壳插卡 54 × 86 mm</option>
+        </select>
+      </div>
+      <div>
+        <label for="ec">二维码纠错等级</label>
+        <select id="ec"><option value="L">L · 7%</option><option value="M">M · 15%</option><option value="Q" selected>Q · 25%（默认，抗磨损）</option></select>
+      </div>
+    </div>
+    <label for="base">求助页网址（域名自动转大写；路径区分大小写，保持和仓库名一致）</label>
+    <input id="base">
+    <p class="error" id="err"></p>
+
+    <div class="batch">
+      <h2>打印列表 Print list</h2>
+      <p class="hint">资料只存在这个页面里，不保存；刷新或关闭页面就清空。Data stays in this page only.</p>
+      <div class="btns">
+        <button class="primary" id="addBatch">加入打印列表 Add</button>
+        <button id="openBatch">预览并打印 Preview &amp; print</button>
+        <button id="clearBatch">清空 Clear</button>
+      </div>
+      <ul id="batchList"></ul>
+      <p class="hint" id="batchInfo"></p>
+    </div>
+  </section>
+
+  <section>
+    <div class="panel">
+      <h2>③ 紧急贴纸（实际尺寸）+ ④ 求助页（从二维码网址解码）</h2>
+      <div class="previews">
+        <div>
+          <div class="stickerWrap">
+            <div class="phoneBack"><div class="cam"></div><div class="sticker" id="sticker"></div></div>
+          </div>
+          <div class="stickerCap" id="stickerCap"></div>
+          <div class="stickerCap"><a href="?sheet" target="_blank">打开竖版打印测试页 ↗</a></div>
+        </div>
+        <div class="phone"><div class="help" id="helpPreview"></div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>② 生成的数据</h2>
+      <div class="stats" id="stats"></div>
+
+      <h3>二维码里的网址</h3>
+      <div class="url" id="url"></div>
+      <div class="legend">
+        <span><i style="background:var(--server)"></i>浏览器会请求这部分（空白网页，所有人共用）</span>
+        <span><i style="background:var(--local)"></i># 后面：不发给服务器，只在扫码人的手机里解析</span>
+      </div>
+
+      <h3>字段拆解</h3>
+      <div class="tablewrap"><table id="fields"></table></div>
+
+      <h3>新旧方案对比（同一份资料，同样的二维码印刷尺寸）</h3>
+      <div class="tablewrap"><table id="compare"></table></div>
+      <p class="hint">打印精度按 300 dpi 计算（1 个墨点 ≈ 0.085 mm）。经验值：每格 ≥ 0.5 mm 普通打印、旧手机都比较稳；0.4–0.5 mm 需要实测；&lt; 0.4 mm 风险高。</p>
+    </div>
+  </section>
+</main>
+
+<div id="helpStandalone"><div class="help" id="helpLive"></div></div>
+<div id="sheet"></div>
+
+<script>
+// 常见急救要点和过敏原用短代码表示，求助页再展开成英文 + 中文
+const COND = {
+  HTN: ["High blood pressure", "高血压"], DM: ["Diabetes", "糖尿病"], AF: ["Atrial fibrillation", "房颤"],
+  CHD: ["Heart disease", "心脏病"], PM: ["Pacemaker", "心脏起搏器"], BT: ["Takes blood thinner", "服用抗凝血药"],
+  STK: ["Prior stroke", "中风史"], DEM: ["Dementia / memory loss", "失智 / 记忆力差"], PD: ["Parkinson's", "帕金森"],
+  EPI: ["Seizures", "癫痫"], COPD: ["COPD / lung disease", "慢阻肺"], CKD: ["Kidney disease", "肾病"], HOH: ["Hard of hearing", "听力差"],
+};
+const ALG = {
+  PCN: ["Penicillin", "青霉素"], SUL: ["Sulfa drugs", "磺胺类药"], ASA: ["Aspirin", "阿司匹林"], NSAID: ["Ibuprofen / NSAIDs", "布洛芬类"],
+  IOD: ["Iodine contrast", "碘造影剂"], LTX: ["Latex", "乳胶"], SHF: ["Shellfish", "贝类"], NUT: ["Nuts", "坚果"],
+};
+const REL = {
+  D: ["daughter", "女儿"], S: ["son", "儿子"], W: ["wife", "老伴"], H: ["husband", "老伴"],
+  GD: ["granddaughter", "孙女"], GS: ["grandson", "孙子"], SIS: ["sister", "姐妹"], BRO: ["brother", "兄弟"], F: ["family", "家人"],
+};
+const LANG = { M: ["Mandarin", "普通话"], C: ["Cantonese", "粤语"] };
+const LIMIT = { cond: 3, alg: 2, med: 3, fam: 2 };
+const BASE_DEFAULT = "HTTPS://NOLAN11701.GITHUB.IO/ice/"; // 仓库 nolan11701/ice，求助页放在仓库根目录
+// qr：二维码边长（mm，含留白），按各版式的版面算好
+const DESIGNS = {
+  portrait: { w: 38.1, h: 69.85, qr: 30, note: "Avery 94230（1.5″ × 2.75″ 防水标签），贴在摄像头下方，手机竖放时正着读" },
+  landscape: { w: 60, h: 38, qr: 26, note: "适合小屏手机，或摄像头模组很大、下方空间不够的手机" },
+  card: { w: 54, h: 86, qr: 31, note: "普通纸打印，夹在透明手机壳里，不怕磨也不怕水" },
+};
+const DOT_MM = 25.4 / 300;
+const QUIET = 2; // 二维码四周留白（格），贴纸本身是白底
+
+// 所有 mock 资料均为虚构；电话使用 555-01xx 虚构号段
+const PRESETS = {
+  "王丽（普通话）": {
+    nameEn: "Wang Li", nameZh: "王丽", withZh: true, lang: "M",
+    cond: ["HTN", "DM"], condOther: "", alg: ["PCN"], algOther: "",
+    meds: ["Metformin", "Amlodipine", ""],
+    fam: [["D", "Mei", "6265550101"], ["S", "David", "6265550102"]],
+  },
+  "陈国强（粤语 · 资料最多）": {
+    nameEn: "Chan Kwok Keung", nameZh: "陈国强", withZh: true, lang: "C",
+    cond: ["AF", "BT", "DEM"], condOther: "", alg: ["ASA", "SHF"], algOther: "",
+    meds: ["Warfarin", "Lisinopril", "Donepezil"],
+    fam: [["W", "", "6265550110"], ["D", "Karen", "6265550111"]],
+  },
+  "李秀英（最少资料）": {
+    nameEn: "Li Xiuying", nameZh: "李秀英", withZh: false, lang: "M",
+    cond: [], condOther: "", alg: [], algOther: "",
+    meds: ["", "", ""],
+    fam: [["D", "Lin", "6265550121"], ["", "", ""]],
+  },
+};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const digits = s => String(s || "").replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "");
+const fmtPhone = d => d.length === 10 ? `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}` : d;
+const telHref = d => "tel:" + (d.length === 10 ? "+1" + d : d);
+// 自由文本只保留 A-Z 0-9，空格转成 "-"，保证整串都能用二维码的字母数字模式
+const token = s => String(s || "").toUpperCase().replace(/[^A-Z0-9 ]/g, "").trim().replace(/\s+/g, "-");
+const untoken = s => s.replace(/-/g, " ").toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+const ALNUM = /^[0-9A-Z $%*+\-./:]*$/;
+
+qrcode.stringToBytes = qrcode.stringToBytesFuncs["UTF-8"];
+
+// ---------- 表单 ----------
+function buildForm() {
+  const chk = (dict, name) => Object.entries(dict).map(([k, [en, zh]]) =>
+    `<label title="${esc(en)}"><input type="checkbox" name="${name}" value="${k}">${esc(zh)}</label>`).join("");
+  $("cond").innerHTML = chk(COND, "cond");
+  $("alg").innerHTML = chk(ALG, "alg");
+  const opts = Object.entries(REL).map(([k, [en, zh]]) => `<option value="${k}">${zh} ${en}</option>`).join("");
+  $("family").innerHTML = [0, 1].map(i => `
+    <div class="fam">
+      <select data-f="${i}" data-k="r"><option value="">（不填）</option>${opts}</select>
+      <input data-f="${i}" data-k="n" placeholder="英文名，如 Mei">
+      <input data-f="${i}" data-k="p" placeholder="电话" inputmode="tel">
+    </div>`).join("");
+}
+const famEl = (i, k) => document.querySelector(`[data-f="${i}"][data-k="${k}"]`);
+
+function loadPreset(p) {
+  for (const k of ["nameEn", "nameZh", "lang", "condOther", "algOther"]) $(k).value = p[k];
+  $("withZh").checked = p.withZh;
+  document.querySelectorAll('[name=cond]').forEach(c => c.checked = p.cond.includes(c.value));
+  document.querySelectorAll('[name=alg]').forEach(c => c.checked = p.alg.includes(c.value));
+  document.querySelectorAll('[data-med]').forEach((el, i) => el.value = p.meds[i] || "");
+  p.fam.forEach(([r, n, ph], i) => { famEl(i, "r").value = r; famEl(i, "n").value = n; famEl(i, "p").value = ph ? fmtPhone(ph) : ""; });
+  render();
+}
+
+function readForm() {
+  const warn = [];
+  const pick = (name, other, max, label) => {
+    const list = [...document.querySelectorAll(`[name=${name}]:checked`)].map(c => c.value);
+    const o = token($(other).value);
+    if (o) list.push(o);
+    if (list.length > max) warn.push(`${label}超过 ${max} 项，只保留前 ${max} 项`);
+    return list.slice(0, max);
+  };
+  const fam = [];
+  for (let i = 0; i < 2; i++) {
+    const r = famEl(i, "r").value, n = token(famEl(i, "n").value), p = digits(famEl(i, "p").value);
+    if (r || p) {
+      if (p.length !== 10) warn.push(`联系人 ${i + 1} 的电话不是 10 位美国号码`);
+      fam.push({ r: r || "F", n, p });
+    }
+  }
+  if (!fam.length) warn.push("至少填写 1 位联系人");
+  if (!token($("nameEn").value)) warn.push("请填写英文 / 拼音姓名");
+  return {
+    data: {
+      nameEn: token($("nameEn").value),
+      nameZh: $("withZh").checked ? $("nameZh").value.trim() : "",
+      lang: $("lang").value,
+      cond: pick("cond", "condOther", LIMIT.cond, "病史"),
+      alg: pick("alg", "algOther", LIMIT.alg, "过敏"),
+      med: [...document.querySelectorAll("[data-med]")].map(el => token(el.value)).filter(Boolean),
+      fam,
+    },
+    warn,
+    nameZhFull: $("nameZh").value.trim(),
+  };
+}
+
+// ---------- 资料 ⇄ 网址 ----------
+// 格式：版本*英文名*中文名(%XX)*语言*病史.病史*过敏*药.药*称呼电话名.称呼电话名
+// 只用 0-9 A-Z % * - . 这些字符，二维码可以用"字母数字模式"（每字符约 5.5 bit，比字节模式省 30%）
+function encode(d) {
+  return ["1", d.nameEn, encodeURIComponent(d.nameZh), d.lang, d.cond.join("."), d.alg.join("."), d.med.join("."),
+    d.fam.map(f => f.r + f.p + f.n).join(".")].join("*").replace(/\*+$/, "");
+}
+function decode(hash) {
+  const parts = hash.replace(/^#/, "").split("*");
+  if (parts[0] !== "1") throw new Error("不支持的资料版本：" + parts[0]);
+  const list = s => (s ? s.split(".").filter(Boolean) : []);
+  let zh = "";
+  try { zh = decodeURIComponent(parts[2] || ""); } catch { zh = ""; }
+  return {
+    nameEn: parts[1] || "", nameZh: zh, lang: parts[3] || "M",
+    cond: list(parts[4]), alg: list(parts[5]), med: list(parts[6]),
+    fam: list(parts[7]).map(s => { const m = s.match(/^([A-Z]+?)(\d{10})([A-Z-]*)$/); return m ? { r: m[1], p: m[2], n: m[3] } : null; }).filter(Boolean),
+  };
+}
+
+// segs: [[文本, 模式], ...]。一个二维码可以混用多种模式，每段只多十几个 bit 的段头
+function buildQR(segs, ec) {
+  const qr = qrcode(0, ec);
+  for (const [text, mode] of segs) if (text) qr.addData(text, mode);
+  qr.make();
+  const n = qr.getModuleCount();
+  let p = "";
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) p += `M${c} ${r}h1v1h-1z`;
+  return { n, version: (n - 17) / 4, path: p };
+}
+const qrSvg = (q, mm) => { const t = q.n + QUIET * 2; return `<svg width="${mm}mm" height="${mm}mm" viewBox="${-QUIET} ${-QUIET} ${t} ${t}" shape-rendering="crispEdges"><rect x="${-QUIET}" y="${-QUIET}" width="${t}" height="${t}" fill="#fff"/><path d="${q.path}" fill="#000"/></svg>`; };
+
+// ---------- 求助页 ----------
+function helpHTML(d) {
+  const lang = LANG[d.lang] || LANG.M;
+  const item = dict => k => dict[k] ? `${esc(dict[k][0])} <span class="zh">${esc(dict[k][1])}</span>` : esc(untoken(k));
+  const famBtn = f => {
+    const [ren, rzh] = REL[f.r] || REL.F;
+    const nm = f.n ? ` (${esc(untoken(f.n))})` : "";
+    return `<a class="call" href="${telHref(f.p)}">📞 Call ${ren}${nm}<br><span style="font-weight:400;font-size:13px">打给${rzh} · ${fmtPhone(f.p)}</span></a>`;
+  };
+  return `
+    <div class="alert"><b>This person may need help</b><span>此人可能需要帮助</span></div>
+    <div class="line"><span class="k">Name:</span> ${esc(untoken(d.nameEn))} ${esc(d.nameZh)}</div>
+    <div class="line"><span class="k">Speaks:</span> ${lang[0]} only <span class="zh">只会说${lang[1]}</span></div>
+    ${d.cond.length ? `<div class="line">⚠ <span class="k">Conditions:</span> ${d.cond.map(item(COND)).join(", ")}</div>` : ""}
+    ${d.alg.length ? `<div class="line">⚠ <span class="k">Allergies:</span> ${d.alg.map(item(ALG)).join(", ")}</div>` : ""}
+    ${d.med.length ? `<div class="line">💊 <span class="k">Medications:</span> ${d.med.map(m => esc(untoken(m))).join(", ")}</div>` : ""}
+    ${d.fam.map(famBtn).join("")}
+    <a class="call e911" href="tel:911">📞 Call 911</a>
+    <div class="foot">Communication aid only, not a medical device. 沟通辅助工具，不是医疗设备。</div>`;
+}
+
+// ---------- 渲染 ----------
+const grade = mm => mm >= 0.5 ? ["ok", "稳"] : mm >= 0.4 ? ["warn", "需实测"] : ["bad", "风险高"];
+
+function stickerHTML(layout, d, q, qrMm) {
+  const head = `<div class="s-head"><b>EMERGENCY</b><span>Medical info · 紧急求助</span></div>`;
+  const say = `<div class="s-say">I speak ${d.lang === "C" ? "Cantonese" : "Chinese"}.<br>Limited English.</div>`;
+  const ice = `<div class="s-ice"><small>EMERGENCY CONTACT · ICE</small>${fmtPhone(d.fam[0]?.p || "")}</div>`;
+  if (layout === "landscape") return `${head}
+    <div class="s-body">
+      <div class="s-txt">${say}<div class="s-cap">Scan with phone camera for medical info &amp; family contact.</div>${ice.replace("EMERGENCY CONTACT · ", "")}</div>
+      ${qrSvg(q, qrMm)}
+    </div>`;
+  return `${head}${say}
+    <div class="s-qr">${qrSvg(q, qrMm)}<div class="s-cap">Scan with phone camera<br>for medical info &amp; family</div></div>
+    ${layout === "card" ? `<div class="s-zh">需要帮助时，把这一面给别人看</div>` : ""}
+    ${ice}`;
+}
+
+function oldScheme(d, nameZhFull, ec) {
+  // 上一版做法：完整字段 + 中英双语 + JSON + lz-string 压缩，字节模式
+  const tr = dict => k => dict[k] ? [dict[k][0], dict[k][1]] : [untoken(k)];
+  const json = JSON.stringify({ v: 1, n: [nameZhFull, untoken(d.nameEn)], l: d.lang.toLowerCase(),
+    c: d.cond.map(tr(COND)), a: d.alg.map(tr(ALG)), m: d.med.map(untoken),
+    f: d.fam.map(f => [f.r.toLowerCase(), f.n ? untoken(f.n) : "", f.p]), i: d.fam[0]?.p || "" });
+  return "https://nolan11701.github.io/ice/#" + LZString.compressToEncodedURIComponent(json);
+}
+
+// "#" 不在字母数字模式的字符集里，单独用字节模式；网址和资料两段用字母数字模式
+// 仓库路径 ice/ 区分大小写必须小写，所以把网址切成几段：能用字母数字模式的连续字符一段，其余用字节模式。
+// 每段有十几个 bit 的段头，太短的字母数字段不划算，并入相邻的字节段
+function qrSegments(base, frag) {
+  const runs = [];
+  for (const ch of `${base}#${frag}`) {
+    const mode = /[0-9A-Z $%*+\-./:]/.test(ch) ? "Alphanumeric" : "Byte";
+    if (runs.length && runs[runs.length - 1][1] === mode) runs[runs.length - 1][0] += ch;
+    else runs.push([ch, mode]);
+  }
+  const segs = [];
+  for (const [text, mode] of runs) {
+    const m = mode === "Alphanumeric" && text.length < 8 ? "Byte" : mode;
+    if (segs.length && segs[segs.length - 1][1] === m) segs[segs.length - 1][0] += text;
+    else segs.push([text, m]);
+  }
+  return { segs, alnum: ALNUM.test(frag) };
+}
+// 协议和域名不区分大小写，转成大写才能用字母数字模式；路径保持原样
+const normBase = u => u.replace(/^https?:\/\/[^/]+/i, m => m.toUpperCase());
+
+// ---------- 打印测试页：竖版贴纸，3 组资料 × 4 种纠错等级，找出实际能扫的密度下限 ----------
+function presetToData(p) {
+  const other = s => token(s) ? [token(s)] : [];
+  return {
+    nameEn: token(p.nameEn), nameZh: p.withZh ? p.nameZh : "", lang: p.lang,
+    cond: [...p.cond, ...other(p.condOther)].slice(0, LIMIT.cond),
+    alg: [...p.alg, ...other(p.algOther)].slice(0, LIMIT.alg),
+    med: p.meds.map(token).filter(Boolean).slice(0, LIMIT.med),
+    fam: p.fam.filter(f => f[0] || f[2]).map(([r, n, ph]) => ({ r: r || "F", n: token(n), p: digits(ph) })),
+  };
+}
+
+// Avery 94230：Letter 纸，2 列 × 5 行共 10 个，标签在纸上横放 2.75″ × 1.5″。
+// 页边距来自 Avery 规格（上下 0.625″、左右 1″），列距和行距由此推算，需用实物核对，偏差用 offX / offY 校正
+const IN = 25.4;
+const AVERY_94230 = { cols: 2, rows: 5, w: 2.75 * IN, h: 1.5 * IN, left: 1 * IN, top: 0.625 * IN, pitchX: 3.75 * IN, pitchY: 2.0625 * IN };
+const sheetOpts = { outline: true, offX: 0, offY: 0 };
+let sheetItems = [], sheetNote = "";
+
+// 竖版贴纸旋转 90° 放进横放的标签；揭下来贴到手机上时方向无所谓
+function pagesHTML(items) {
+  const L = AVERY_94230, per = L.cols * L.rows, { w, h, qr } = DESIGNS.portrait;
+  const pages = [];
+  for (let p = 0; p < items.length; p += per) {
+    const cells = items.slice(p, p + per).map((it, i) => {
+      const x = L.left + (i % L.cols) * L.pitchX + sheetOpts.offX;
+      const y = L.top + Math.floor(i / L.cols) * L.pitchY + sheetOpts.offY;
+      return `<div class="label" style="left:${x}mm;top:${y}mm;width:${L.w}mm;height:${L.h}mm">
+          <div class="rot" style="transform:translate(0,${L.h}mm) rotate(-90deg)"><div class="sticker portrait" style="--w:${w};--h:${h}">${stickerHTML("portrait", it.d, it.q, qr)}</div></div>
+        </div>
+        <div class="cap" style="left:${x}mm;top:${y + L.h + 0.8}mm">${it.cap}</div>`;
+    }).join("");
+    pages.push(`<div class="page${sheetOpts.outline ? " outline" : ""}">${p === 0 ? sheetNote : ""}${cells}</div>`);
+  }
+  return pages.join("");
+}
+
+function showSheet(items, note, backable) {
+  sheetItems = items; sheetNote = note;
+  document.body.classList.add("sheet-mode");
+  $("pageSize").textContent = "@media print { @page { size: letter; margin: 0; } }";
+  $("sheet").innerHTML = `
+    <div class="sheetBar">
+      ${backable ? `<button id="sheetBack">← 返回 Back</button>` : ""}
+      <button class="primary" id="sheetPrint">打印 Print</button>
+      <label class="inline" style="margin:0"><input type="checkbox" id="sheetOutline" ${sheetOpts.outline ? "checked" : ""}> 打印标签轮廓（对齐测试用）</label>
+      <label class="inline" style="margin:0">偏移 X <input type="number" step="0.5" id="offX" value="${sheetOpts.offX}"> Y <input type="number" step="0.5" id="offY" value="${sheetOpts.offY}"> mm</label>
+      <span class="grow">${items.length} 张贴纸 · ${Math.ceil(items.length / 10)} 张 Avery 94230 · 打印选"实际大小 / 100%"</span>
+    </div>
+    <div id="pages">${pagesHTML(items)}</div>`;
+  const redraw = () => { $("pages").innerHTML = pagesHTML(sheetItems); };
+  $("sheetPrint").onclick = () => window.print();
+  $("sheetOutline").onchange = e => { sheetOpts.outline = e.target.checked; redraw(); };
+  $("offX").oninput = e => { sheetOpts.offX = +e.target.value || 0; redraw(); };
+  $("offY").oninput = e => { sheetOpts.offY = +e.target.value || 0; redraw(); };
+  if (backable) $("sheetBack").onclick = () => { document.body.classList.remove("sheet-mode"); render(); };
+}
+
+const sheetNoteHTML = text => `<div class="note"><div>${text}</div><div class="ruler"><i></i>这条线应正好 50 mm</div></div>`;
+
+// 打印测试：3 组资料 × 4 种纠错等级，找出实际能扫的密度下限
+function renderTestSheet() {
+  const qr = DESIGNS.portrait.qr, items = [];
+  for (const [label, p] of Object.entries(PRESETS)) {
+    const d = presetToData(p);
+    const { segs } = qrSegments(BASE_DEFAULT, encode(d));
+    for (const ec of ["L", "M", "Q", "H"]) {
+      const q = buildQR(segs, ec);
+      items.push({ d, q, cap: `${esc(label.split("（")[0])} · 纠错 ${ec} · V${q.version} · 每格 ${(qr / (q.n + QUIET * 2)).toFixed(2)} mm` });
+    }
+  }
+  showSheet(items, sheetNoteHTML(`<b>打印测试 · 竖版贴纸 1.5″ × 2.75″</b><br>先用普通纸打印，叠在 Avery 94230 上对着光看是否对齐；再用标签纸打印，逐张扫码。`), false);
+}
+
+// ---------- 打印列表：一组人排在同一张纸上一起打印 ----------
+let batch = []; // 只在内存里，刷新或关闭页面即清空
+const BLANK = { nameEn: "", nameZh: "", withZh: false, lang: "M", cond: [], condOther: "", alg: [], algOther: "",
+  meds: ["", "", ""], fam: [["", "", ""], ["", "", ""]] };
+
+function renderBatch() {
+  $("batchList").innerHTML = batch.map((b, i) =>
+    `<li><span>${i + 1}. ${esc(b.name)}</span><button data-rm="${i}">移除 Remove</button></li>`).join("");
+  $("batchInfo").textContent = batch.length ? `共 ${batch.length} 人 · 需要 ${Math.ceil(batch.length / 10)} 张 Avery 94230（每张 10 个）` : "";
+  $("openBatch").disabled = $("clearBatch").disabled = !batch.length;
+}
+
+function addToBatch() {
+  const { data, warn, nameZhFull } = readForm();
+  const blocking = warn.filter(w => /姓名|联系人/.test(w));
+  if (blocking.length) { $("err").textContent = "不能加入打印列表：\n" + blocking.join("\n"); return; }
+  batch.push({ name: [nameZhFull, untoken(data.nameEn)].filter(Boolean).join(" "), d: data, ec: $("ec").value,
+    base: normBase($("base").value.trim() || BASE_DEFAULT) });
+  renderBatch();
+  loadPreset(BLANK); // 清空表单，准备填下一位
+}
+
+function openBatch() {
+  const items = batch.map(b => ({ d: b.d, q: buildQR(qrSegments(b.base, encode(b.d)).segs, b.ec), cap: esc(b.name) }));
+  showSheet(items, "", true);
+}
+
+function render() {
+  const { data: d, warn, nameZhFull } = readForm();
+  const layout = $("size").value;
+  const { w, h, qr: qrMm, note } = DESIGNS[layout];
+  const ec = $("ec").value;
+  const base = normBase($("base").value.trim() || BASE_DEFAULT);
+  const frag = encode(d);
+  const url = `${base}#${frag}`;
+  const { segs, alnum } = qrSegments(base, frag);
+  if (!alnum) warn.push("资料里有字母数字模式不支持的字符，退回字节模式（更密）");
+
+  const q = buildQR(segs, ec);
+  const modMm = qrMm / (q.n + QUIET * 2);
+  const [cls, txt] = grade(modMm);
+
+  const oldUrl = oldScheme(d, nameZhFull, ec);
+  const qo = buildQR([[oldUrl, "Byte"]], ec);
+  const oldMod = qrMm / (qo.n + QUIET * 2);
+  const [ocls, otxt] = grade(oldMod);
+
+  $("err").textContent = warn.join("\n");
+  $("sticker").className = `sticker ${layout}`;
+  $("sticker").style.cssText = `--w:${w};--h:${h}`;
+  $("sticker").innerHTML = stickerHTML(layout, d, q, qrMm);
+  $("stickerCap").textContent = `${w} × ${h} mm · 二维码 ${qrMm} mm · ${note}。灰色是 72 × 148 mm 的手机背面示意`;
+  $("pageSize").textContent = `@media print { @page { size: ${w}mm ${h}mm; margin: 0; } }`;
+
+  $("stats").innerHTML = [
+    [`${url.length} 字符`, `二维码分 ${segs.length} 段：${segs.map(([t, m]) => `${t.length}${m === "Byte" ? "字节" : "字母数字"}`).join(" + ")}`],
+    [`V${q.version} · ${q.n}×${q.n}`, `二维码版本 / 格数（纠错 ${ec}）`],
+    [`<span class="${cls}">${modMm.toFixed(2)} mm</span>`, `每格大小 · ${txt}`],
+    [`${(modMm / DOT_MM).toFixed(1)} 点`, "每格 ≈ 几个墨点 @300dpi"],
+  ].map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join("");
+
+  $("url").innerHTML = `<span class="srv">${esc(base)}</span><span class="loc">#${esc(frag)}</span>`;
+
+  const parts = frag.split("*");
+  const names = ["格式版本", "英文 / 拼音名", "中文名（UTF-8 %XX）", "语言", "病史代码", "过敏代码", "用药", "联系人（称呼 + 电话 + 名字）"];
+  $("fields").innerHTML = `<tr><th>字段</th><th>编码后</th><th>字符数</th></tr>` +
+    names.map((n, i) => `<tr><td>${n}</td><td><code>${esc(parts[i] ?? "") || "—"}</code></td><td>${(parts[i] ?? "").length}</td></tr>`).join("");
+
+  $("compare").innerHTML = `
+    <tr><th></th><th>上一版（JSON + lz-string）</th><th>精简版</th></tr>
+    <tr><td>二维码内容</td><td>${oldUrl.length} 字符 · 字节模式</td><td>${url.length} 字符 · ${alnum ? "字母数字模式" : "字节模式"}</td></tr>
+    <tr><td>版本 / 格数</td><td>V${qo.version} · ${qo.n}×${qo.n}</td><td>V${q.version} · ${q.n}×${q.n}</td></tr>
+    <tr><td>每格大小 @${qrMm} mm</td><td class="${ocls}">${oldMod.toFixed(2)} mm · ${otxt}</td><td class="${cls}">${modMm.toFixed(2)} mm · ${txt}</td></tr>
+    <tr><td>病史 / 过敏</td><td>中英文全文写进二维码</td><td>只写代码，求助页内置中英对照表</td></tr>
+    <tr><td>联系人</td><td>最多 4 位，含中文名</td><td>最多 2 位，称呼代码 + 电话 + 可选英文名</td></tr>`;
+
+  // 求助页预览走真实的解析流程：只用网址 # 后面的部分
+  try { $("helpPreview").innerHTML = helpHTML(decode(frag)); }
+  catch (e) { $("helpPreview").innerHTML = `<p class="error">${esc(e.message)}</p>`; }
+}
+
+// ---------- 启动 ----------
+if (location.hash.length > 1) {
+  // 扫码打开：本页即求助页
+  document.body.classList.add("help-mode");
+  try { $("helpLive").innerHTML = helpHTML(decode(location.hash)); }
+  catch (e) { $("helpLive").innerHTML = `<p class="error">${esc(e.message)}</p>`; }
+} else if (new URLSearchParams(location.search).has("sheet")) {
+  renderTestSheet();
+} else {
+  buildForm();
+  $("base").value = BASE_DEFAULT;
+  $("presets").innerHTML = Object.keys(PRESETS).map((k, i) => `<button data-p="${i}">${esc(k)}</button>`).join("");
+  $("presets").onclick = e => { const b = e.target.closest("button"); if (b) loadPreset(Object.values(PRESETS)[+b.dataset.p]); };
+  document.querySelector("main section").addEventListener("input", render);
+  $("addBatch").onclick = addToBatch;
+  $("openBatch").onclick = openBatch;
+  $("clearBatch").onclick = () => { batch = []; renderBatch(); };
+  $("batchList").onclick = e => { const b = e.target.closest("[data-rm]"); if (b) { batch.splice(+b.dataset.rm, 1); renderBatch(); } };
+  renderBatch();
+  loadPreset(Object.values(PRESETS)[0]);
+}
+</script>
+</body>
+</html>
