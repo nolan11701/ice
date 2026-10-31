@@ -12,6 +12,7 @@
 <style>
   html, body { margin: 0; background: #fff; }
   .help { max-width: 480px; margin: 0 auto; min-height: 100vh; box-sizing: border-box; }
+  .help .steps .en { display: block; color: #777; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -30,15 +31,16 @@ function show() {
       <div class="alert"><b>Emergency Info</b><span>紧急信息</span></div>
       <p class="msg">This page shows a person's emergency information when opened from the QR code on their sticker.</p>
       <p class="msg zh">用手机相机扫描贴纸上的二维码，这里会显示长者的紧急资料。</p>
-      <h2 class="hub-title">志愿者入口 Volunteers</h2>
-      <a class="hub" href="tool/"><b>📝 贴纸工具</b><span>录入资料、预览、打印贴纸 · Sticker tool</span></a>
-      <a class="hub" href="tool/?sheet"><b>🖨 打印测试页</b><span>核对纸张对齐、测试扫码 · Print test</span></a>
-      <a class="hub" href="#${DEMO_HASH}"><b>👀 示例求助页</b><span>扫码后路人看到的页面 · Demo</span></a>
+      <h2 class="hub-title">志愿者入口 · Volunteers</h2>
+      <a class="hub" href="tool/"><b>📝 贴纸工具 · Sticker tool</b><span>录入资料、预览、打印贴纸<br>Enter info, preview and print stickers</span></a>
+      <a class="hub" href="tool/?sheet"><b>🖨 打印测试页 · Print test</b><span>核对纸张对齐、测试扫码<br>Check label alignment and test scanning</span></a>
+      <a class="hub" href="#${DEMO_HASH}"><b>👀 示例求助页 · Demo</b><span>扫码后路人看到的页面（虚构人物）<br>What people see after scanning (fictional person)</span></a>
+      <h2 class="hub-title">现场流程 · How it works</h2>
       <ol class="steps">
-        <li>打开贴纸工具，选模板（普通话 / 粤语）</li>
-        <li>每位长者输入名字和电话，按 Enter 加入</li>
-        <li>满 10 人（一张 Avery 94230）就打印</li>
-        <li>核对、贴好后，手动清空本张，再录下一批</li>
+        <li>打开贴纸工具，选模板（普通话 / 粤语）<span class="en">Open the sticker tool and pick a template (Mandarin / Cantonese)</span></li>
+        <li>每位长者输入名字和电话，按 Enter 加入<span class="en">Type each senior's name and phone number, then press Enter</span></li>
+        <li>满 10 人（一张 Avery 94230）就打印<span class="en">Print once you have 10 people (one Avery 94230 sheet)</span></li>
+        <li>核对、贴好后，手动清空本张，再录下一批<span class="en">After checking and applying the stickers, clear the sheet and start the next batch</span></li>
       </ol>`;
     return;
   }
