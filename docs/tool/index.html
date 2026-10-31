@@ -47,7 +47,7 @@
   .bar i { display: block; height: 100%; background: var(--accent); transition: width .2s; }
   .top .count { font-size: 14px; white-space: nowrap; }
 
-  .layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(360px, 1fr); gap: 16px; padding: 16px 20px 32px; align-items: start; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(340px, 1fr); gap: 16px; padding: 16px 20px 32px; align-items: start; }
   @media (max-width: 980px) { .layout { grid-template-columns: 1fr; padding: 12px 16px 24px; } .top { padding: 10px 16px; } }
   .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; min-width: 0; }
   .panel + .panel { margin-top: 16px; }
@@ -75,8 +75,13 @@
   tbody tr.sel { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
   td.n { width: 28px; color: var(--muted); }
   td.ph { white-space: nowrap; }
-  td .zh { font-weight: 600; margin-right: 6px; }
-  .chip { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--border); white-space: nowrap; }
+  td input.copies { width: 58px; padding: 4px 6px; text-align: center; }
+  tbody tr.done td { color: var(--muted); }
+  .st-done { color: var(--muted); font-size: 13px; white-space: nowrap; }
+  .st-done button { display: block; margin-top: 3px; padding: 1px 8px; font-size: 12px; }
+  td.nm b, td.nm small { display: block; white-space: nowrap; }
+  td.nm small { font-size: 13px; color: var(--text); }
+  .chip { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--border); white-space: nowrap; }
   .st-ok { color: var(--ok); font-size: 13px; white-space: nowrap; }
   .st-bad { color: var(--bad); font-size: 13px; white-space: nowrap; }
   td.x { width: 40px; text-align: right; }
@@ -158,8 +163,8 @@
     <div class="bar"><i id="barFill" style="width:0"></i></div>
     <span class="count" id="count"></span>
   </div>
-  <button class="primary" id="printSheet">🖨 打印本张 Print sheet</button>
-  <button id="clearSheet">清空本张 Clear</button>
+  <button class="primary" id="printSheet">🖨 打印待打印 Print</button>
+  <button id="clearPrinted">清空已打印 Clear printed</button>
 </div>
 
 <div class="layout">
@@ -179,10 +184,11 @@
     </div>
 
     <div class="panel">
-      <h2>本张名单 <small>This sheet · 点一行可修改详细资料 Click a row to edit</small></h2>
+      <h2>名单 <small>List · 点一行可修改详细资料 Click a row to edit</small></h2>
       <div id="rows"></div>
       <div class="tableActions">
         <button id="demo">加入示例 Add demo</button>
+        <button id="clearAll">全部清空 Clear all</button>
       </div>
     </div>
   </section>
@@ -193,7 +199,8 @@
 
 <script src="../shared.js?v=2"></script>
 <script>
-const SHEET_MAX = 10;  // 一张 Avery 94230 有 10 个标签
+const PER_SHEET = 10;  // 一张 Avery 94230 有 10 个标签
+const MAX_COPIES = 10; // 每人最多印几份
 const QR_MM = 30;      // 贴纸上二维码边长（含留白）
 const QUIET = 2;       // 二维码四周留白（格），贴纸本身是白底
 const EC = "Q";        // 纠错等级，约 25% 被磨损仍能识别
@@ -217,12 +224,13 @@ const $ = id => document.getElementById(id);
 qrcode.stringToBytes = qrcode.stringToBytesFuncs["UTF-8"];
 
 // ---------- 资料 ----------
-let people = [];   // 本张纸上的人，只在内存里，刷新或关闭页面即清空
+let people = [];   // 名单，只在内存里，刷新或关闭页面即清空；人数不限，打印时每 10 张贴纸排一张纸
 let selected = -1;
 let tpl = "M";
 
+// copies：要印几份；printed：已经打印过（资料再被修改就变回待打印）
 const newPerson = (o = {}) => ({ nameEn: "", nameZh: "", withZh: true, lang: "M", cond: [], condOther: "", alg: [], algOther: "",
-  meds: ["", "", ""], fam: [["F", "", ""], ["", "", ""]], ...o });
+  meds: ["", "", ""], fam: [["F", "", ""], ["", "", ""]], copies: 1, printed: false, ...o });
 
 function toData(p) {
   const other = s => token(s) ? [token(s)] : [];
@@ -289,33 +297,40 @@ function stickerHTML(d, q) {
 const grade = mm => mm >= 0.5 ? ["ok", "容易扫 Easy to scan"] : mm >= 0.4 ? ["warn", "需实测 Test before use"] : ["bad", "太密，减少资料 Too dense"];
 
 // ---------- 顶栏和名单 ----------
+const toPrint = () => people.filter(p => !p.printed && !problems(p).length);
+
 function renderTop() {
-  const ready = people.filter(p => !problems(p).length).length;
-  $("barFill").style.width = `${people.length / SHEET_MAX * 100}%`;
-  $("count").innerHTML = `本张 Sheet <b>${people.length}</b> / ${SHEET_MAX} · 可打印 Ready <b>${ready}</b>`;
-  $("printSheet").disabled = !ready;
-  $("clearSheet").disabled = !people.length;
-  $("qAdd").disabled = people.length >= SHEET_MAX;
-  $("demo").disabled = people.length >= SHEET_MAX;
+  const printed = people.filter(p => p.printed).length;
+  const stickers = toPrint().reduce((n, p) => n + p.copies, 0);
+  // 进度条表示已打印的比例
+  $("barFill").style.width = people.length ? `${printed / people.length * 100}%` : "0";
+  $("count").innerHTML = `共 Total <b>${people.length}</b> 人 · 已打印 Printed <b>${printed}</b> · 待打印 To print <b>${stickers}</b> 张 stickers（${Math.ceil(stickers / PER_SHEET)} 张纸 sheets）`;
+  $("printSheet").disabled = !stickers;
+  $("clearPrinted").disabled = !printed;
+  $("clearAll").disabled = !people.length;
 }
 
 function renderRows() {
   if (!people.length) {
-    $("rows").innerHTML = `<div class="empty">还没有人。用上面的快速添加，一张纸最多 ${SHEET_MAX} 人。<br>No one yet. Use Quick add above.</div>`;
+    $("rows").innerHTML = `<div class="empty">还没有人。用上面的快速添加录入。<br>No one yet. Use Quick add above.</div>`;
   } else {
     $("rows").innerHTML = `<table>
-      <thead><tr><th>#</th><th>姓名 Name</th><th>语言 Language</th><th>ICE 电话 Phone</th><th>状态 Status</th><th></th></tr></thead>
+      <thead><tr><th>#</th><th>姓名 Name</th><th>语言 Language</th><th>ICE 电话 Phone</th><th>份数 Copies</th><th>状态 Status</th><th></th></tr></thead>
       <tbody>${people.map((p, i) => {
         const e = problems(p);
-        return `<tr data-i="${i}" class="${i === selected ? "sel" : ""}">
+        const status = e.length ? `<span class="st-bad">⚠ ${e.join(" · ")}</span>`
+          : p.printed ? `<span class="st-done">✓ 已打印 Printed<button data-reprint="${i}" title="改回待打印 Mark to print again">重印 Reprint</button></span>`
+          : `<span class="st-ok">✓ 可打印 Ready</span>`;
+        return `<tr data-i="${i}" class="${[i === selected ? "sel" : "", p.printed ? "done" : ""].join(" ")}">
           <td class="n">${i + 1}</td>
-          <td><span class="zh">${esc(p.nameZh)}</span>${esc(p.nameEn)}</td>
+          <td class="nm"><b>${esc(p.nameZh)}</b><small>${esc(p.nameEn)}</small></td>
           <td><span class="chip">${p.lang === "C" ? "粤语 Cantonese" : "普通话 Mandarin"}</span></td>
           <td class="ph">${esc(fmtPhone(digits(p.fam[0][2]))) || "—"}</td>
-          <td>${e.length ? `<span class="st-bad">⚠ ${e.join(" · ")}</span>` : `<span class="st-ok">✓ 可打印 Ready</span>`}</td>
+          <td><input type="number" class="copies" min="1" max="${MAX_COPIES}" value="${p.copies}" data-copies="${i}" aria-label="份数 Copies"></td>
+          <td>${status}</td>
           <td class="x"><button data-del="${i}" title="删除 Delete">✕</button></td>
         </tr>`; }).join("")}</tbody></table>
-      <div class="slots">${people.length < SHEET_MAX ? `还能加 ${SHEET_MAX - people.length} 人 · ${SHEET_MAX - people.length} more` : "本张已满，请打印后清空 Sheet is full"}</div>`;
+`;
   }
   renderTop();
 }
@@ -328,7 +343,6 @@ function renderTpl() {
 
 function quickAdd() {
   const say = t => { $("qMsg").textContent = t; };
-  if (people.length >= SHEET_MAX) return say("本张已满 10 人，请先打印并清空。This sheet is full.");
   const en = $("qEn").value, ph = digits($("qPhone").value);
   if (!token(en)) { $("qEn").focus(); return say("请输入英文 / 拼音姓名 Please enter a name"); }
   if ($("qPhone").value.trim() && ph.length !== 10) { $("qPhone").focus(); return say("电话要是 10 位美国号码 Phone must be 10 digits"); }
@@ -412,6 +426,7 @@ function enforceLimits() {
 function onDetailInput() {
   const p = people[selected];
   if (!p) return;
+  if (p.printed) { p.printed = false; $("qMsg").textContent = `第 ${selected + 1} 位的资料改了，已改回待打印，需要重印。#${selected + 1} changed — needs reprinting.`; }
   const f = (i, k) => document.querySelector(`#dForm [data-f="${i}"][data-k="${k}"]`).value;
   Object.assign(p, {
     nameEn: $("dEn").value, nameZh: $("dZh").value, lang: $("dLang").value, withZh: $("dWithZh").checked,
@@ -433,7 +448,8 @@ function refreshPreview() {
   const d = toData(p), q = buildQR(d), e = problems(p);
   const [cls, txt] = grade(q.moduleMm);
   $("dSticker").innerHTML = stickerHTML(d, q);
-  $("dStatus").innerHTML = e.length ? `<span class="st-bad">⚠ ${e.join(" · ")}</span>` : `<span class="st-ok">✓ 可打印 Ready</span>`;
+  $("dStatus").innerHTML = e.length ? `<span class="st-bad">⚠ ${e.join(" · ")}</span>`
+    : p.printed ? `<span class="st-done">✓ 已打印 Printed</span>` : `<span class="st-ok">✓ 可打印 Ready</span>`;
   $("dInfo").innerHTML = `<b>贴纸实际大小</b><br>Actual size · 1.5″ × 2.75″<br><br>
     二维码 QR V${q.version}<br>每格 ${q.moduleMm.toFixed(2)} mm · <span class="${cls}">${txt}</span><br><br>
     请和长者或家属一起核对。<br>Check with the senior or family.`;
@@ -465,7 +481,9 @@ function pagesHTML() {
   return pages.join("");
 }
 
-function showSheet(items, note, backable) {
+// onDone：从名单打印时传入，预览里会出现"标记为已打印"；测试页不传
+function showSheet(items, note, onDone) {
+  const backable = !!onDone;
   sheetItems = items; sheetNote = note;
   document.body.classList.add("sheet-mode");
   window.scrollTo(0, 0);
@@ -474,6 +492,7 @@ function showSheet(items, note, backable) {
     <div class="sheetBar">
       ${backable ? `<button id="sheetBack">← 返回修改 Back</button>` : `<a href="../">← 入口 Home</a>`}
       <button class="primary" id="sheetPrint">🖨 打印 Print</button>
+      ${backable ? `<button id="sheetDone">✓ 打印好了，标记为已打印 Mark as printed</button>` : ""}
       <label class="inline"><input type="checkbox" id="sheetOutline" ${sheetOpts.outline ? "checked" : ""}> 印标签轮廓（对齐测试用）Outlines</label>
       <label class="inline">偏移 Offset X <input type="number" step="0.5" id="offX" value="${sheetOpts.offX}"> Y <input type="number" step="0.5" id="offY" value="${sheetOpts.offY}"> mm</label>
       <span class="grow">${items.length} 张贴纸 stickers · 打印选"实际大小 / 100%"、边距"无" Print at 100%, no margins</span>
@@ -484,25 +503,41 @@ function showSheet(items, note, backable) {
   $("sheetOutline").onchange = e => { sheetOpts.outline = e.target.checked; redraw(); };
   $("offX").oninput = e => { sheetOpts.offX = +e.target.value || 0; redraw(); };
   $("offY").oninput = e => { sheetOpts.offY = +e.target.value || 0; redraw(); };
-  if (backable) $("sheetBack").onclick = () => {
-    document.body.classList.remove("sheet-mode"); $("sheet").innerHTML = ""; $("pageSize").textContent = "";
-  };
+  if (backable) {
+    const back = () => { document.body.classList.remove("sheet-mode"); $("sheet").innerHTML = ""; $("pageSize").textContent = ""; };
+    $("sheetBack").onclick = back;
+    $("sheetDone").onclick = () => { onDone(); back(); };
+  }
 }
 
+// 打印所有待打印的人，按份数展开；资料不完整的跳过
 function printSheet() {
-  const ready = people.filter(p => !problems(p).length);
-  const skip = people.length - ready.length;
+  const ready = toPrint();
+  const skip = people.filter(p => !p.printed && problems(p).length).length;
   if (skip && !confirm(`有 ${skip} 人资料不完整，这次不会打印。继续吗？\n${skip} incomplete — they will be skipped. Continue?`)) return;
-  // 只有打印时才给所有人生成二维码
-  showSheet(ready.map(p => ({ d: toData(p), q: buildQR(toData(p)), cap: esc(displayName(p)) })), "", true);
+  // 只有打印时才给这些人生成二维码；同一个人的几份共用一个二维码
+  const items = [];
+  for (const p of ready) {
+    const d = toData(p), q = buildQR(d);
+    for (let c = 1; c <= p.copies; c++) items.push({ d, q, cap: esc(displayName(p)) + (p.copies > 1 ? ` (${c}/${p.copies})` : "") });
+  }
+  showSheet(items, "", () => {
+    ready.forEach(p => { p.printed = true; });
+    $("qMsg").textContent = `${ready.length} 人已标记为已打印。${ready.length} marked as printed.`;
+    renderRows(); renderDetail();
+  });
 }
 
-function clearSheet() {
-  if (!confirm(`清空本张 ${people.length} 人的资料？请确认已经打印好、贴好。\nClear all ${people.length} people on this sheet?`)) return;
-  people = []; selected = -1;
+function clearPeople(keep, msg) {
+  if (!confirm(msg)) return;
+  people = people.filter(keep); selected = -1;
   renderRows(); renderDetail();
   $("qEn").focus();
 }
+const clearPrinted = () => { const n = people.filter(p => p.printed).length;
+  clearPeople(p => !p.printed, `清空 ${n} 位已打印的人？请确认贴纸已经贴好。\nClear ${n} printed people?`); };
+const clearAll = () => clearPeople(() => false,
+  `清空全部 ${people.length} 人的资料，包括还没打印的？\nClear all ${people.length} people, including unprinted?`);
 
 // 打印测试页：3 组示例资料 × 4 种纠错等级，用来核对纸张对齐和扫码的密度下限
 function openTestSheet() {
@@ -518,7 +553,7 @@ function openTestSheet() {
   showSheet(items, `<div class="note"><div><b>打印测试 Print test · Avery 94230</b><br>
     先用普通纸打印，叠在标签纸上对着光看是否对齐；再用标签纸打印，用不同手机逐张扫码。<br>
     Print on plain paper first and hold it over a label sheet to check alignment.</div>
-    <div class="ruler"><i></i>这条线应正好 50 mm</div></div>`, false);
+    <div class="ruler"><i></i>这条线应正好 50 mm</div></div>`, null);
 }
 
 // ---------- 启动 ----------
@@ -540,16 +575,31 @@ if (new URLSearchParams(location.search).has("sheet")) {
       selected = selected === i ? -1 : selected > i ? selected - 1 : selected;
       renderRows(); renderDetail(); return;
     }
+    const re = e.target.closest("[data-reprint]");
+    if (re) { people[+re.dataset.reprint].printed = false; renderRows(); return; }
+    if (e.target.closest("input")) return;
     const tr = e.target.closest("tr[data-i]");
     if (tr) { selected = +tr.dataset.i; renderRows(); renderDetail(); }
   };
+  // 份数：打字时只更新计数，不重画表格（否则输入框会失去焦点）
+  $("rows").addEventListener("input", e => {
+    const el = e.target.closest("[data-copies]");
+    if (!el) return;
+    const n = Math.round(+el.value);
+    if (n >= 1) { people[+el.dataset.copies].copies = Math.min(n, MAX_COPIES); renderTop(); }
+  });
+  $("rows").addEventListener("change", e => {
+    const el = e.target.closest("[data-copies]");
+    if (el) el.value = people[+el.dataset.copies].copies;
+  });
   $("demo").onclick = () => {
-    for (const d of DEMOS) if (people.length < SHEET_MAX) people.push(newPerson({ ...d }));
+    for (const d of DEMOS) people.push(newPerson({ ...d }));
     selected = people.length - 1;
     renderRows(); renderDetail();
   };
   $("printSheet").onclick = printSheet;
-  $("clearSheet").onclick = clearSheet;
+  $("clearPrinted").onclick = clearPrinted;
+  $("clearAll").onclick = clearAll;
   // 名单里还有人时离开页面要提醒，避免资料没打印就丢了
   window.addEventListener("beforeunload", e => { if (people.length) e.preventDefault(); });
   renderRows(); renderDetail();
