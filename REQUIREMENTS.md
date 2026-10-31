@@ -233,4 +233,3 @@ HTTPS://NOLAN11701.GITHUB.IO/ice/#1*WANG-LI*%E7%8E%8B%E4%B8%BD*M*HTN.DM*PCN*METF
 - 引用 `shared.js` / `shared.css` 时带版本号（`?v=2`）；修改共用文件后要把两个页面里的版本号都加 1，否则浏览器可能用旧缓存
 - 本地预览：在项目根目录启动静态服务器，打开 `http://localhost:8766/docs/tool/`
 
-`sticker-prototype/` 是讨论阶段的原型（含新旧方案对比、其他版式），不部署。
