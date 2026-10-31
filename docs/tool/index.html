@@ -61,7 +61,7 @@
   .seg button { border: none; border-radius: 0; padding: 8px 16px; background: var(--panel); }
   .seg button + button { border-left: 1px solid var(--border); }
   .seg button.on { background: var(--accent); color: #fff; font-weight: 600; }
-  .quick { display: grid; grid-template-columns: 1.3fr 1fr .8fr 1.4fr auto; gap: 8px; align-items: end; margin-top: 12px; }
+  .quick { display: grid; grid-template-columns: 1.2fr 1fr 1.2fr 1.3fr auto; gap: 8px; align-items: end; margin-top: 12px; }
   .quick label { margin-top: 0; }
   @media (max-width: 640px) { .quick { grid-template-columns: 1fr 1fr; } .quick .add { grid-column: span 2; } }
   .quick .add button { width: 100%; height: 41px; }
@@ -74,6 +74,7 @@
   tbody tr:hover { background: var(--soft); }
   tbody tr.sel { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
   td.n { width: 28px; color: var(--muted); }
+  td.ph { white-space: nowrap; }
   td .zh { font-weight: 600; margin-right: 6px; }
   .chip { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--border); white-space: nowrap; }
   .st-ok { color: var(--ok); font-size: 13px; white-space: nowrap; }
@@ -237,12 +238,12 @@ function toData(p) {
 // 不能打印的原因；空数组表示可以打印
 function problems(p) {
   const e = [];
-  if (!token(p.nameEn)) e.push("缺英文名");
-  if (digits(p.fam[0][2]).length !== 10) e.push("缺电话");
-  if (p.fam[1][2] && digits(p.fam[1][2]).length !== 10) e.push("联系人 2 电话不对");
+  if (!token(p.nameEn)) e.push("缺英文名 No name");
+  if (digits(p.fam[0][2]).length !== 10) e.push("缺电话 No phone");
+  if (p.fam[1][2] && digits(p.fam[1][2]).length !== 10) e.push("联系人 2 电话不对 Contact 2 phone invalid");
   return e;
 }
-const displayName = p => [p.nameZh.trim(), p.nameEn.trim()].filter(Boolean).join(" ") || "（未命名）";
+const displayName = p => [p.nameZh.trim(), p.nameEn.trim()].filter(Boolean).join(" ") || "（未命名 Unnamed）";
 
 // ---------- 二维码 ----------
 // 把网址切成几段：能用字母数字模式的连续字符一段，其余用字节模式。
@@ -291,7 +292,7 @@ const grade = mm => mm >= 0.5 ? ["ok", "容易扫 Easy to scan"] : mm >= 0.4 ? [
 function renderTop() {
   const ready = people.filter(p => !problems(p).length).length;
   $("barFill").style.width = `${people.length / SHEET_MAX * 100}%`;
-  $("count").innerHTML = `本张 <b>${people.length}</b> / ${SHEET_MAX} 人 · 可打印 <b>${ready}</b>`;
+  $("count").innerHTML = `本张 Sheet <b>${people.length}</b> / ${SHEET_MAX} · 可打印 Ready <b>${ready}</b>`;
   $("printSheet").disabled = !ready;
   $("clearSheet").disabled = !people.length;
   $("qAdd").disabled = people.length >= SHEET_MAX;
@@ -303,18 +304,18 @@ function renderRows() {
     $("rows").innerHTML = `<div class="empty">还没有人。用上面的快速添加，一张纸最多 ${SHEET_MAX} 人。<br>No one yet. Use Quick add above.</div>`;
   } else {
     $("rows").innerHTML = `<table>
-      <thead><tr><th>#</th><th>姓名 Name</th><th>语言</th><th>ICE 电话</th><th>状态 Status</th><th></th></tr></thead>
+      <thead><tr><th>#</th><th>姓名 Name</th><th>语言 Language</th><th>ICE 电话 Phone</th><th>状态 Status</th><th></th></tr></thead>
       <tbody>${people.map((p, i) => {
         const e = problems(p);
         return `<tr data-i="${i}" class="${i === selected ? "sel" : ""}">
           <td class="n">${i + 1}</td>
           <td><span class="zh">${esc(p.nameZh)}</span>${esc(p.nameEn)}</td>
-          <td><span class="chip">${p.lang === "C" ? "粤语" : "普通话"}</span></td>
-          <td>${esc(fmtPhone(digits(p.fam[0][2]))) || "—"}</td>
-          <td>${e.length ? `<span class="st-bad">⚠ ${e.join("、")}</span>` : `<span class="st-ok">✓ 可打印</span>`}</td>
+          <td><span class="chip">${p.lang === "C" ? "粤语 Cantonese" : "普通话 Mandarin"}</span></td>
+          <td class="ph">${esc(fmtPhone(digits(p.fam[0][2]))) || "—"}</td>
+          <td>${e.length ? `<span class="st-bad">⚠ ${e.join(" · ")}</span>` : `<span class="st-ok">✓ 可打印 Ready</span>`}</td>
           <td class="x"><button data-del="${i}" title="删除 Delete">✕</button></td>
         </tr>`; }).join("")}</tbody></table>
-      <div class="slots">${people.length < SHEET_MAX ? `还能加 ${SHEET_MAX - people.length} 人` : "本张已满，请打印后清空 Sheet is full"}</div>`;
+      <div class="slots">${people.length < SHEET_MAX ? `还能加 ${SHEET_MAX - people.length} 人 · ${SHEET_MAX - people.length} more` : "本张已满，请打印后清空 Sheet is full"}</div>`;
   }
   renderTop();
 }
@@ -354,7 +355,7 @@ function renderDetail() {
   const rel = cur => `<option value="">称呼 Relation</option>` + Object.entries(REL).map(([k, [en, zh]]) =>
     `<option value="${k}" ${k === cur ? "selected" : ""}>${zh} ${en}</option>`).join("");
   $("detail").innerHTML = `
-    <div class="head"><h2>第 ${selected + 1} 位 · ${esc(displayName(p))}</h2><small id="dStatus"></small></div>
+    <div class="head"><h2>第 ${selected + 1} 位 #${selected + 1} · ${esc(displayName(p))}</h2><small id="dStatus"></small></div>
     <div class="previewRow">
       <div class="sticker" id="dSticker"></div>
       <div class="info" id="dInfo"></div>
@@ -432,7 +433,7 @@ function refreshPreview() {
   const d = toData(p), q = buildQR(d), e = problems(p);
   const [cls, txt] = grade(q.moduleMm);
   $("dSticker").innerHTML = stickerHTML(d, q);
-  $("dStatus").innerHTML = e.length ? `<span class="st-bad">⚠ ${e.join("、")}</span>` : `<span class="st-ok">✓ 可打印 Ready</span>`;
+  $("dStatus").innerHTML = e.length ? `<span class="st-bad">⚠ ${e.join(" · ")}</span>` : `<span class="st-ok">✓ 可打印 Ready</span>`;
   $("dInfo").innerHTML = `<b>贴纸实际大小</b><br>Actual size · 1.5″ × 2.75″<br><br>
     二维码 QR V${q.version}<br>每格 ${q.moduleMm.toFixed(2)} mm · <span class="${cls}">${txt}</span><br><br>
     请和长者或家属一起核对。<br>Check with the senior or family.`;
@@ -475,7 +476,7 @@ function showSheet(items, note, backable) {
       <button class="primary" id="sheetPrint">🖨 打印 Print</button>
       <label class="inline"><input type="checkbox" id="sheetOutline" ${sheetOpts.outline ? "checked" : ""}> 印标签轮廓（对齐测试用）Outlines</label>
       <label class="inline">偏移 Offset X <input type="number" step="0.5" id="offX" value="${sheetOpts.offX}"> Y <input type="number" step="0.5" id="offY" value="${sheetOpts.offY}"> mm</label>
-      <span class="grow">${items.length} 张贴纸 · 打印选"实际大小 / 100%"、边距"无" Print at 100%, no margins</span>
+      <span class="grow">${items.length} 张贴纸 stickers · 打印选"实际大小 / 100%"、边距"无" Print at 100%, no margins</span>
     </div>
     <div id="pages">${pagesHTML()}</div>`;
   const redraw = () => { $("pages").innerHTML = pagesHTML(); };
@@ -510,7 +511,7 @@ function openTestSheet() {
     const p = newPerson(demo), d = toData(p);
     for (const ec of ["L", "M", "Q", "H"]) {
       const q = buildQR(d, ec);
-      items.push({ d, q, cap: `${esc(p.nameZh)}（示例）· 纠错 ${ec} · V${q.version} · 每格 ${q.moduleMm.toFixed(2)} mm` });
+      items.push({ d, q, cap: `${esc(p.nameZh)} ${esc(p.nameEn)}（示例 demo）· 纠错 EC ${ec} · V${q.version} · 每格 ${q.moduleMm.toFixed(2)} mm/module` });
     }
   }
   sheetOpts.outline = true;
@@ -525,8 +526,7 @@ if (new URLSearchParams(location.search).has("sheet")) {
   openTestSheet();
 } else {
   renderTpl();
-  // 快速添加栏位窄，称呼只显示中文；英文在详细资料里能看到
-  $("qRel").innerHTML = Object.entries(REL).map(([k, [en, zh]]) => `<option value="${k}" title="${en}" ${k === "F" ? "selected" : ""}>${zh}</option>`).join("");
+  $("qRel").innerHTML = Object.entries(REL).map(([k, [en, zh]]) => `<option value="${k}" ${k === "F" ? "selected" : ""}>${zh} ${en}</option>`).join("");
   $("tpl").onclick = e => { const b = e.target.closest("[data-tpl]"); if (b) { tpl = b.dataset.tpl; renderTpl(); $("qEn").focus(); } };
   for (const id of ["qEn", "qZh", "qRel", "qPhone"]) $(id).addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); quickAdd(); } });
   $("qPhone").addEventListener("blur", () => { const d = digits($("qPhone").value); if (d.length === 10) $("qPhone").value = fmtPhone(d); });
