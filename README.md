@@ -97,7 +97,7 @@ HTTPS://NOLAN11701.GITHUB.IO/ice/#1*WANG-LI*...*D6265550101MEI
 1. 红色标题 **EMERGENCY**
 2. 按长者的语言写提示语（见下表）
 3. 二维码，下面写 "Scan for medical & family info"
-4. 日间保健中心简称，加大加粗：**Crown City ADHC Center**（不印中心电话）
+4. 日间保健中心简称，深蓝色加粗一行：**Crown City ADHC Center**（不印中心电话）
 5. **EMERGENCY CONTACT · ICE** 和第 1 位联系人的电话
 
 | 语言 | 贴纸提示语 | 求助页的第二语言 |

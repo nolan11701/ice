@@ -8,7 +8,6 @@ const BASE_URL = "HTTPS://NOLAN11701.GITHUB.IO/ice/";
 const CENTER = {
   name: "Crown City Adult Day Health Care Center",
   short: "Crown City ADHC Center",
-  sticker: ["Crown City", "ADHC Center"], // 贴纸表面分两行印，字可以更大
   address: "122 N El Molino Ave, Pasadena, CA 91101",
   phone: "6265838822",
 };

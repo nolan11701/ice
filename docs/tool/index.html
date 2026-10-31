@@ -8,7 +8,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <link rel="icon" href="data:,">
 <!-- 共用文件带版本号：改了 shared.* 就把 v 加 1，避免浏览器用旧的缓存 -->
-<link rel="stylesheet" href="../shared.css?v=4">
+<link rel="stylesheet" href="../shared.css?v=5">
 <style id="pageSize"></style>
 <style>
   :root {
@@ -124,8 +124,8 @@
   .s-say { font-weight: 800; line-height: 1.15; text-align: center; font-size: 3mm; margin: 1.2mm .8mm .9mm; }
   .s-qr { display: flex; flex-direction: column; align-items: center; }
   .s-cap { font-weight: 700; color: #333; text-align: center; font-size: 2.4mm; line-height: 1.1; margin-top: .3mm; }
-  /* 中心名称要醒目：加大加粗，分两行；用深蓝和红色的紧急信息区分，也和求助页的 Call day center 按钮呼应 */
-  .s-org { margin: auto 0; text-align: center; line-height: 1.08; font-size: 3.1mm; font-weight: 900; color: #1e40af; padding: 0 .5mm; }
+  /* 中心名称要醒目：加粗一行，2.9mm 刚好放得下；用深蓝和红色的紧急信息区分，也和求助页的 Call day center 按钮呼应 */
+  .s-org { margin: auto 0; text-align: center; line-height: 1.08; font-size: 2.9mm; font-weight: 900; color: #1e40af; white-space: nowrap; }
   .s-ice { border-top: 0.3mm solid #ddd; text-align: center; font-weight: 900; white-space: nowrap; line-height: 1.15;
     padding: 1.1mm 0 1.3mm; font-size: 3.9mm; }
   .s-ice small { display: block; color: var(--red); font-weight: 800; letter-spacing: .04em; font-size: 2mm; }
@@ -198,7 +198,7 @@
 </div>
 <div id="sheet"></div>
 
-<script src="../shared.js?v=4"></script>
+<script src="../shared.js?v=5"></script>
 <script>
 const PER_SHEET = 10;  // 一张 Avery 94230 有 10 个标签
 const MAX_COPIES = 10; // 每人最多印几份
@@ -304,7 +304,7 @@ function stickerHTML(d, q) {
     <div class="s-head"><b>EMERGENCY</b></div>
     <div class="s-say">${STICKER_TEXT[d.lang] || STICKER_TEXT.M}</div>
     <div class="s-qr">${qrSvg(q)}<div class="s-cap">Scan for medical<br>&amp; family info</div></div>
-    <div class="s-org">${CENTER.sticker.map(esc).join("<br>")}</div>
+    <div class="s-org">${esc(CENTER.short)}</div>
     <div class="s-ice"><small>EMERGENCY CONTACT · ICE</small>${fmtPhone(d.fam[0]?.p || "")}</div>`;
 }
 
