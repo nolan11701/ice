@@ -94,10 +94,10 @@ HTTPS://NOLAN11701.GITHUB.IO/ice/#1*WANG-LI*...*D6265550101MEI
 
 从上到下：
 
-1. 红色标题 **EMERGENCY** / Medical info
+1. 红色标题 **EMERGENCY**
 2. 按长者的语言写提示语（见下表）
-3. 二维码，以及 "Scan with phone camera for medical info & family"
-4. 日间保健中心的简称和电话：**Crown City ADHC Center**、(626) 583-8822
+3. 二维码，下面写 "Scan for medical & family info"
+4. 日间保健中心简称，加大加粗：**Crown City ADHC Center**（不印中心电话）
 5. **EMERGENCY CONTACT · ICE** 和第 1 位联系人的电话
 
 | 语言 | 贴纸提示语 | 求助页的第二语言 |
@@ -105,9 +105,9 @@ HTTPS://NOLAN11701.GITHUB.IO/ice/#1*WANG-LI*...*D6265550101MEI
 | 普通话 | I speak Chinese. Limited English. | 中文 |
 | 粤语 | I speak Cantonese. Limited English. | 中文 |
 | 西班牙语 | I speak Spanish. Limited English. | 西班牙语 |
-| 英语 | In an emergency, please scan. | 无（只有英文） |
+| 英语 | In an emergency, please help. | 无（只有英文） |
 
-求助页另外会显示中心的完整名称、地址和"Call day center"按钮。中心信息写在 `shared.js` 的 `CENTER` 里，不放进二维码，所以不会让二维码变密。
+求助页另外会显示中心的完整名称、地址、电话和"Call day center"按钮。中心信息写在 `shared.js` 的 `CENTER` 里，不放进二维码，所以不会让二维码变密。
 
 姓名、病史等隐私资料只在二维码里，不印在表面。二维码扫不出来时（贴纸磨损、扫码的人没有网络），路人仍然可以直接拨打表面的 ICE 电话。
 
@@ -118,7 +118,7 @@ HTTPS://NOLAN11701.GITHUB.IO/ice/#1*WANG-LI*...*D6265550101MEI
 **1.5″ × 2.75″（38 × 70 mm）**，竖着贴在手机背面、摄像头下方。
 
 - 常见手机背面平整的区域约宽 60 mm，小屏 iPhone 约 55 mm，38 mm 宽在常见手机上都贴得下
-- 二维码约 28 mm，按目前的资料量，每格约 0.5–0.7 mm，普通激光打印机印出来就能扫；资料最多时约 0.49 mm，建议实测
+- 二维码约 30 mm，按目前的资料量，每格约 0.53–0.73 mm，普通激光打印机印出来就能扫
 
 ---
 

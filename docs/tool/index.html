@@ -8,7 +8,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <link rel="icon" href="data:,">
 <!-- 共用文件带版本号：改了 shared.* 就把 v 加 1，避免浏览器用旧的缓存 -->
-<link rel="stylesheet" href="../shared.css?v=3">
+<link rel="stylesheet" href="../shared.css?v=4">
 <style id="pageSize"></style>
 <style>
   :root {
@@ -119,14 +119,13 @@
     border: 0.6mm solid var(--red); border-radius: 3mm; overflow: hidden; display: flex; flex-direction: column;
     font-family: "Helvetica Neue", Arial, "PingFang SC", sans-serif; box-shadow: 0 1px 6px rgba(0,0,0,.12); }
   .sticker svg { display: block; }
-  .s-head { background: var(--red); color: #fff; text-align: center; line-height: 1.1; padding: 1.4mm 0 1.2mm; }
+  .s-head { background: var(--red); color: #fff; text-align: center; line-height: 1.1; padding: 1.5mm 0 1.3mm; }
   .s-head b { display: block; font-weight: 900; letter-spacing: .05em; font-size: 4.8mm; }
-  .s-head span { display: block; font-weight: 600; font-size: 2.3mm; margin-top: .3mm; }
-  .s-say { font-weight: 800; line-height: 1.15; text-align: center; font-size: 3mm; margin: 1.5mm .8mm 1.1mm; }
+  .s-say { font-weight: 800; line-height: 1.15; text-align: center; font-size: 3mm; margin: 1.2mm .8mm .9mm; }
   .s-qr { display: flex; flex-direction: column; align-items: center; }
-  .s-cap { font-weight: 600; color: #333; text-align: center; line-height: 1.2; font-size: 2.2mm; margin-top: .5mm; }
-  .s-org { margin-top: auto; text-align: center; line-height: 1.1; font-size: 2.2mm; color: #333; padding-bottom: .5mm; }
-  .s-org b { display: block; font-weight: 700; white-space: nowrap; }
+  .s-cap { font-weight: 700; color: #333; text-align: center; font-size: 2.4mm; line-height: 1.1; margin-top: .3mm; }
+  /* 中心名称要醒目：加大加粗，分两行 */
+  .s-org { margin: auto 0; text-align: center; line-height: 1.08; font-size: 3.1mm; font-weight: 900; color: #111; padding: 0 .5mm; }
   .s-ice { border-top: 0.3mm solid #ddd; text-align: center; font-weight: 900; white-space: nowrap; line-height: 1.15;
     padding: 1.1mm 0 1.3mm; font-size: 3.9mm; }
   .s-ice small { display: block; color: var(--red); font-weight: 800; letter-spacing: .04em; font-size: 2mm; }
@@ -199,11 +198,11 @@
 </div>
 <div id="sheet"></div>
 
-<script src="../shared.js?v=3"></script>
+<script src="../shared.js?v=4"></script>
 <script>
 const PER_SHEET = 10;  // 一张 Avery 94230 有 10 个标签
 const MAX_COPIES = 10; // 每人最多印几份
-const QR_MM = 28;      // 贴纸上二维码边长（含留白）；从 30 缩到 28，给中心信息腾出两行
+const QR_MM = 30;      // 贴纸上二维码边长（含留白）
 const QUIET = 2;       // 二维码四周留白（格），贴纸本身是白底
 const EC = "Q";        // 纠错等级，约 25% 被磨损仍能识别
 
@@ -292,20 +291,20 @@ function buildQR(d, ec = EC) {
 const qrSvg = q => { const t = q.n + QUIET * 2;
   return `<svg width="${QR_MM}mm" height="${QR_MM}mm" viewBox="${-QUIET} ${-QUIET} ${t} ${t}" shape-rendering="crispEdges"><rect x="${-QUIET}" y="${-QUIET}" width="${t}" height="${t}" fill="#fff"/><path d="${q.path}" fill="#000"/></svg>`; };
 
-// 贴纸表面的文字按长者的语言：说英语的不用写"英文有限"，改成请对方扫码
+// 贴纸表面的文字按长者的语言：说英语的不用写"英文有限"，改成请对方帮忙
 const STICKER_TEXT = {
-  M: { head: "Medical info · 紧急求助", say: "I speak Chinese.<br>Limited English." },
-  C: { head: "Medical info · 紧急求助", say: "I speak Cantonese.<br>Limited English." },
-  S: { head: "Medical info · Emergencia", say: "I speak Spanish.<br>Limited English." },
-  E: { head: "Medical info", say: "In an emergency,<br>please scan." },
+  M: "I speak Chinese.<br>Limited English.",
+  C: "I speak Cantonese.<br>Limited English.",
+  S: "I speak Spanish.<br>Limited English.",
+  E: "In an emergency,<br>please help.",
 };
 
 function stickerHTML(d, q) {
   return `
-    <div class="s-head"><b>EMERGENCY</b><span>${STICKER_TEXT[d.lang]?.head || STICKER_TEXT.M.head}</span></div>
-    <div class="s-say">${STICKER_TEXT[d.lang]?.say || STICKER_TEXT.M.say}</div>
-    <div class="s-qr">${qrSvg(q)}<div class="s-cap">Scan with phone camera<br>for medical info &amp; family</div></div>
-    <div class="s-org"><b>${esc(CENTER.short)}</b>${fmtPhone(CENTER.phone)}</div>
+    <div class="s-head"><b>EMERGENCY</b></div>
+    <div class="s-say">${STICKER_TEXT[d.lang] || STICKER_TEXT.M}</div>
+    <div class="s-qr">${qrSvg(q)}<div class="s-cap">Scan for medical<br>&amp; family info</div></div>
+    <div class="s-org">${CENTER.sticker.map(esc).join("<br>")}</div>
     <div class="s-ice"><small>EMERGENCY CONTACT · ICE</small>${fmtPhone(d.fam[0]?.p || "")}</div>`;
 }
 

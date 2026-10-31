@@ -4,10 +4,11 @@
 // 二维码里的网址。协议和域名写大写，二维码可以用字母数字模式；路径 ice/ 必须和仓库名一样保持小写
 const BASE_URL = "HTTPS://NOLAN11701.GITHUB.IO/ice/";
 
-// 合作中心：贴纸表面印简称和电话，求助页显示完整信息。不进二维码，不影响二维码密度
+// 合作中心：贴纸表面只印简称，求助页显示完整名称、地址和电话。不进二维码，不影响二维码密度
 const CENTER = {
   name: "Crown City Adult Day Health Care Center",
   short: "Crown City ADHC Center",
+  sticker: ["Crown City", "ADHC Center"], // 贴纸表面分两行印，字可以更大
   address: "122 N El Molino Ave, Pasadena, CA 91101",
   phone: "6265838822",
 };
