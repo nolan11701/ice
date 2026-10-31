@@ -8,7 +8,7 @@
 <title>Emergency Info · 紧急信息</title>
 <link rel="icon" href="data:,">
 <!-- 共用文件带版本号：改了 shared.* 就把 v 加 1，避免浏览器用旧的缓存 -->
-<link rel="stylesheet" href="shared.css?v=2">
+<link rel="stylesheet" href="shared.css?v=3">
 <style>
   html, body { margin: 0; background: #fff; }
   .help { max-width: 480px; margin: 0 auto; min-height: 100vh; box-sizing: border-box; }
@@ -17,7 +17,7 @@
 </head>
 <body>
 <div class="help" id="help"></div>
-<script src="shared.js?v=2"></script>
+<script src="shared.js?v=3"></script>
 <script>
 // 求助页：资料只从网址 # 后面读取，# 后面的内容浏览器不会发给服务器
 // 示例资料为虚构，电话使用 555-01xx 虚构号段
@@ -37,7 +37,7 @@ function show() {
       <a class="hub" href="#${DEMO_HASH}"><b>👀 示例求助页 · Demo</b><span>扫码后路人看到的页面（虚构人物）<br>What people see after scanning (fictional person)</span></a>
       <h2 class="hub-title">现场流程 · How it works</h2>
       <ol class="steps">
-        <li>打开贴纸工具，选模板（普通话 / 粤语）<span class="en">Open the sticker tool and pick a template (Mandarin / Cantonese)</span></li>
+        <li>打开贴纸工具，选模板（普通话 / 粤语 / 英语 / 西班牙语）<span class="en">Open the sticker tool and pick a template (Mandarin / Cantonese / English / Spanish)</span></li>
         <li>每位长者输入名字和电话，按 Enter 加入；人数不限，要多张就改份数<span class="en">Type each senior's name and phone number, then press Enter. No limit on people; change Copies if someone needs more than one</span></li>
         <li>打印所有待打印的人（每张 Avery 94230 印 10 张贴纸），打好后点"标记为已打印"<span class="en">Print everyone not yet printed (10 stickers per Avery 94230 sheet), then mark them as printed</span></li>
         <li>核对、贴好后，清空已打印的人<span class="en">After checking and applying the stickers, clear the printed people</span></li>
@@ -51,6 +51,7 @@ function show() {
       <div class="alert"><b>Could not read this QR code</b><span>无法读取这个二维码</span></div>
       <p class="msg">Please call the emergency contact number printed on the sticker, or call 911.</p>
       <p class="msg zh">请拨打贴纸上印的紧急联系电话，或拨打 911。</p>
+      ${centerHTML(SECOND.zh)}
       <a class="call e911" href="tel:911">📞 Call 911</a>`;
   }
 }

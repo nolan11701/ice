@@ -8,7 +8,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <link rel="icon" href="data:,">
 <!-- 共用文件带版本号：改了 shared.* 就把 v 加 1，避免浏览器用旧的缓存 -->
-<link rel="stylesheet" href="../shared.css?v=2">
+<link rel="stylesheet" href="../shared.css?v=3">
 <style id="pageSize"></style>
 <style>
   :root {
@@ -125,7 +125,9 @@
   .s-say { font-weight: 800; line-height: 1.15; text-align: center; font-size: 3mm; margin: 1.5mm .8mm 1.1mm; }
   .s-qr { display: flex; flex-direction: column; align-items: center; }
   .s-cap { font-weight: 600; color: #333; text-align: center; line-height: 1.2; font-size: 2.2mm; margin-top: .5mm; }
-  .s-ice { margin-top: auto; border-top: 0.3mm solid #ddd; text-align: center; font-weight: 900; white-space: nowrap; line-height: 1.15;
+  .s-org { margin-top: auto; text-align: center; line-height: 1.1; font-size: 2.2mm; color: #333; padding-bottom: .5mm; }
+  .s-org b { display: block; font-weight: 700; white-space: nowrap; }
+  .s-ice { border-top: 0.3mm solid #ddd; text-align: center; font-weight: 900; white-space: nowrap; line-height: 1.15;
     padding: 1.1mm 0 1.3mm; font-size: 3.9mm; }
   .s-ice small { display: block; color: var(--red); font-weight: 800; letter-spacing: .04em; font-size: 2mm; }
 
@@ -197,18 +199,20 @@
 </div>
 <div id="sheet"></div>
 
-<script src="../shared.js?v=2"></script>
+<script src="../shared.js?v=3"></script>
 <script>
 const PER_SHEET = 10;  // 一张 Avery 94230 有 10 个标签
 const MAX_COPIES = 10; // 每人最多印几份
-const QR_MM = 30;      // 贴纸上二维码边长（含留白）
+const QR_MM = 28;      // 贴纸上二维码边长（含留白）；从 30 缩到 28，给中心信息腾出两行
 const QUIET = 2;       // 二维码四周留白（格），贴纸本身是白底
 const EC = "Q";        // 纠错等级，约 25% 被磨损仍能识别
 
 // 模板：选好后，快速添加的每个人都套用这些设定；以后要加模板（例如常见病史组合）就加在这里
 const TEMPLATES = {
-  M: { label: "普通话模板 Mandarin", lang: "M", withZh: true },
-  C: { label: "粤语模板 Cantonese", lang: "C", withZh: true },
+  M: { label: "普通话 Mandarin", lang: "M", withZh: true },
+  C: { label: "粤语 Cantonese", lang: "C", withZh: true },
+  E: { label: "英语 English", lang: "E", withZh: false },
+  S: { label: "西班牙语 Spanish", lang: "S", withZh: false },
 };
 
 // 示例资料均为虚构；电话使用 555-01xx 虚构号段
@@ -218,6 +222,9 @@ const DEMOS = [
   { nameEn: "Chan Kwok Keung", nameZh: "陈国强", lang: "C", cond: ["AF", "BT", "DEM"], alg: ["ASA", "SHF"], meds: ["Warfarin", "Lisinopril", "Donepezil"],
     fam: [["W", "", "6265550110"], ["D", "Karen", "6265550111"]] },
   { nameEn: "Li Xiuying", nameZh: "李秀英", lang: "M", withZh: false, fam: [["D", "Lin", "6265550121"], ["", "", ""]] },
+  { nameEn: "Maria Lopez", lang: "S", withZh: false, cond: ["HTN", "DM"], alg: ["PCN"], meds: ["Metformin", "", ""],
+    fam: [["D", "Ana", "6265550131"], ["S", "Luis", "6265550132"]] },
+  { nameEn: "John Miller", lang: "E", withZh: false, cond: ["BT", "PM"], fam: [["W", "Susan", "6265550141"], ["", "", ""]] },
 ];
 
 const $ = id => document.getElementById(id);
@@ -285,11 +292,20 @@ function buildQR(d, ec = EC) {
 const qrSvg = q => { const t = q.n + QUIET * 2;
   return `<svg width="${QR_MM}mm" height="${QR_MM}mm" viewBox="${-QUIET} ${-QUIET} ${t} ${t}" shape-rendering="crispEdges"><rect x="${-QUIET}" y="${-QUIET}" width="${t}" height="${t}" fill="#fff"/><path d="${q.path}" fill="#000"/></svg>`; };
 
+// 贴纸表面的文字按长者的语言：说英语的不用写"英文有限"，改成请对方扫码
+const STICKER_TEXT = {
+  M: { head: "Medical info · 紧急求助", say: "I speak Chinese.<br>Limited English." },
+  C: { head: "Medical info · 紧急求助", say: "I speak Cantonese.<br>Limited English." },
+  S: { head: "Medical info · Emergencia", say: "I speak Spanish.<br>Limited English." },
+  E: { head: "Medical info", say: "In an emergency,<br>please scan." },
+};
+
 function stickerHTML(d, q) {
   return `
-    <div class="s-head"><b>EMERGENCY</b><span>Medical info · 紧急求助</span></div>
-    <div class="s-say">I speak ${d.lang === "C" ? "Cantonese" : "Chinese"}.<br>Limited English.</div>
+    <div class="s-head"><b>EMERGENCY</b><span>${STICKER_TEXT[d.lang]?.head || STICKER_TEXT.M.head}</span></div>
+    <div class="s-say">${STICKER_TEXT[d.lang]?.say || STICKER_TEXT.M.say}</div>
     <div class="s-qr">${qrSvg(q)}<div class="s-cap">Scan with phone camera<br>for medical info &amp; family</div></div>
+    <div class="s-org"><b>${esc(CENTER.short)}</b>${fmtPhone(CENTER.phone)}</div>
     <div class="s-ice"><small>EMERGENCY CONTACT · ICE</small>${fmtPhone(d.fam[0]?.p || "")}</div>`;
 }
 
@@ -324,7 +340,7 @@ function renderRows() {
         return `<tr data-i="${i}" class="${[i === selected ? "sel" : "", p.printed ? "done" : ""].join(" ")}">
           <td class="n">${i + 1}</td>
           <td class="nm"><b>${esc(p.nameZh)}</b><small>${esc(p.nameEn)}</small></td>
-          <td><span class="chip">${p.lang === "C" ? "粤语 Cantonese" : "普通话 Mandarin"}</span></td>
+          <td><span class="chip">${(LANG[p.lang] || LANG.M)[1]} ${(LANG[p.lang] || LANG.M)[0]}</span></td>
           <td class="ph">${esc(fmtPhone(digits(p.fam[0][2]))) || "—"}</td>
           <td><input type="number" class="copies" min="1" max="${MAX_COPIES}" value="${p.copies}" data-copies="${i}" aria-label="份数 Copies"></td>
           <td>${status}</td>
@@ -381,7 +397,7 @@ function renderDetail() {
       </div>
       <div class="row2">
         <div><label for="dLang">语言 <small>Language</small></label>
-          <select id="dLang"><option value="M" ${p.lang === "M" ? "selected" : ""}>普通话 Mandarin</option><option value="C" ${p.lang === "C" ? "selected" : ""}>粤语 Cantonese</option></select></div>
+          <select id="dLang">${Object.entries(LANG).map(([k, l]) => `<option value="${k}" ${p.lang === k ? "selected" : ""}>${l[1]} ${l[0]}</option>`).join("")}</select></div>
         <div><label>&nbsp;</label><label class="inline" style="margin:10px 0 0"><input type="checkbox" id="dWithZh" ${p.withZh ? "checked" : ""}> 二维码里放中文名 <small>Chinese name in QR</small></label></div>
       </div>
       <label>联系人 <small>Contacts · 第 1 位印在贴纸上 The first is printed (ICE)</small></label>
