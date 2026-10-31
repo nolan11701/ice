@@ -6,6 +6,10 @@
 <meta name="robots" content="noindex">
 <title>一页通 · 贴纸工具 Sticker Tool</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<!-- 中心名称用窄体字；用网络字体，平板和电脑印出来宽度一样 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@800&display=block">
 <link rel="icon" href="data:,">
 <!-- 共用文件带版本号：改了 shared.* 就把 v 加 1，避免浏览器用旧的缓存 -->
 <link rel="stylesheet" href="../shared.css?v=5">
@@ -124,8 +128,9 @@
   .s-say { font-weight: 800; line-height: 1.15; text-align: center; font-size: 3mm; margin: 1.2mm .8mm .9mm; }
   .s-qr { display: flex; flex-direction: column; align-items: center; }
   .s-cap { font-weight: 700; color: #333; text-align: center; font-size: 2.4mm; line-height: 1.1; margin-top: .3mm; }
-  /* 中心名称要醒目：加粗一行，2.9mm 刚好放得下；用深蓝和红色的紧急信息区分，也和求助页的 Call day center 按钮呼应 */
-  .s-org { margin: auto 0; text-align: center; line-height: 1.08; font-size: 2.9mm; font-weight: 900; color: #1e40af; white-space: nowrap; }
+  /* 中心名称要醒目：窄体加粗一行；用深蓝和红色的紧急信息区分，也和求助页的 Call day center 按钮呼应 */
+  .s-org { margin: auto 0; text-align: center; line-height: 1.08; font-family: "Roboto Condensed", "Arial Narrow", sans-serif;
+    font-size: 3.5mm; font-weight: 800; color: #1e40af; white-space: nowrap; }
   .s-ice { border-top: 0.3mm solid #ddd; text-align: center; font-weight: 900; white-space: nowrap; line-height: 1.15;
     padding: 1.1mm 0 1.3mm; font-size: 3.9mm; }
   .s-ice small { display: block; color: var(--red); font-weight: 800; letter-spacing: .04em; font-size: 2mm; }
@@ -514,7 +519,8 @@ function showSheet(items, note, onDone) {
     </div>
     <div id="pages">${pagesHTML()}</div>`;
   const redraw = () => { $("pages").innerHTML = pagesHTML(); };
-  $("sheetPrint").onclick = () => window.print();
+  // 等窄体字下载完再打开打印，避免用替代字体印出去
+  $("sheetPrint").onclick = () => document.fonts.ready.then(() => window.print());
   $("sheetOutline").onchange = e => { sheetOpts.outline = e.target.checked; redraw(); };
   $("offX").oninput = e => { sheetOpts.offX = +e.target.value || 0; redraw(); };
   $("offY").oninput = e => { sheetOpts.offY = +e.target.value || 0; redraw(); };

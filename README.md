@@ -97,7 +97,7 @@ HTTPS://NOLAN11701.GITHUB.IO/ice/#1*WANG-LI*...*D6265550101MEI
 1. 红色标题 **EMERGENCY**
 2. 按长者的语言写提示语（见下表）
 3. 二维码，下面写 "Scan for medical & family info"
-4. 日间保健中心简称，深蓝色加粗一行：**Crown City ADHC Center**（不印中心电话）
+4. 日间保健中心简称，深蓝色窄体加粗一行：**Crown City ADHC Center**（不印中心电话）
 5. **EMERGENCY CONTACT · ICE** 和第 1 位联系人的电话
 
 | 语言 | 贴纸提示语 | 求助页的第二语言 |
@@ -175,7 +175,7 @@ docs/                 GitHub Pages 从 main 分支的 /docs 发布
 └── tool/index.html   贴纸工具：录入、预览、打印、打印测试页（?sheet）
 ```
 
-没有构建步骤，也没有依赖安装。贴纸工具从 cdnjs 加载 `qrcode-generator@1.4.4` 来生成二维码。
+没有构建步骤，也没有依赖安装。贴纸工具从 cdnjs 加载 `qrcode-generator@1.4.4` 来生成二维码，从 Google Fonts 加载窄体字 Roboto Condensed（贴纸上的中心名称用）；打印按钮会等字体下载完才打开打印对话框。
 
 ### 本地预览
 
