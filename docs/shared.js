@@ -82,8 +82,12 @@ function decode(hash) {
 // 中心信息和拨号按钮；读不出二维码时也显示，sec 为第二语言（可为 null）
 function centerHTML(sec) {
   return `
-    <div class="org-info"><span class="k">Day center:</span> ${esc(CENTER.name)}${sec ? ` <span class="zh">${sec.center}</span>` : ""}<br>${esc(CENTER.address)}</div>
-    <a class="call org" href="${telHref(CENTER.phone)}">📞 Call day center<span>${sec ? `${sec.callCenter} · ` : ""}${fmtPhone(CENTER.phone)}</span></a>`;
+    <div class="org-card">
+      <div class="org-label">Day center${sec ? ` · ${sec.center}` : ""}</div>
+      <div class="org-name">${esc(CENTER.name)}</div>
+      <div class="org-addr">${esc(CENTER.address)}</div>
+      <a class="call org" href="${telHref(CENTER.phone)}">📞 Call day center<span>${sec ? `${sec.callCenter} · ` : ""}${fmtPhone(CENTER.phone)}</span></a>
+    </div>`;
 }
 
 // 求助页内容：以英文为主，附长者的语言，给路人和急救人员看
