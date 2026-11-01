@@ -1,13 +1,13 @@
 # 一页通 · 长者紧急贴纸
 
-> **ICE (In Case of Emergency) stickers for Chinese-speaking seniors.**
+> **Emergency stickers for seniors with limited English.**
 > A small sticker on the back of a senior's phone says "I speak Chinese, limited English" and shows an emergency contact number. Scanning its QR code opens a bilingual page with key medical info and one-tap buttons to call family. No app, no account, no server-side data.
 
 很多华人长者英文有限。遇到摔倒、走失或突发疾病时，路人和急救人员不懂中文，长者也说不清自己的病史；手机有密码锁，别人也找不到家人的电话。
 
 一页通是一张贴在手机背面的紧急贴纸：
 
-- **表面**：用英文写明"我说中文，英文有限"，并印上一个紧急联系电话（ICE）
+- **表面**：用英文写明"我说中文，英文有限"，并印上一个紧急联系电话
 - **二维码**：任何人用手机相机一扫，就能看到长者的关键医疗信息（英文为主，附长者的语言：中文或西班牙语），并一键拨打家属、日间保健中心或 911
 
 整套工具免费、不用下载 App、不用注册，也**不在任何服务器上存储个人资料**。
@@ -58,7 +58,7 @@ HTTPS://NOLAN11701.GITHUB.IO/ice/#1*WANG-LI*...*D6265550101MEI
 
 1. 打开入口页，进入**贴纸工具**
 2. 选模板：**普通话**、**粤语**、**英语**或**西班牙语**。之后录入的每个人都会套用这个模板的语言设定
-3. **快速添加**：输入英文名、中文名、称呼、ICE 电话，按 **Enter** 加入，光标会回到名字栏，直接录下一位
+3. **快速添加**：输入英文名、中文名、称呼、紧急联系电话，按 **Enter** 加入，光标会回到名字栏，直接录下一位
    - 只有英文名是必填的，可以先只录名字；名单里会标"⚠ 缺电话"，补上后才能打印
    - 人数不限，可以提前把一大批长者都录进去
 4. 在名单里点一个人，右边可以补充病史、过敏、用药，并看到**实际大小的贴纸**和**扫码后的页面**。请和长者或家属一起核对
@@ -98,7 +98,7 @@ HTTPS://NOLAN11701.GITHUB.IO/ice/#1*WANG-LI*...*D6265550101MEI
 2. 按长者的语言写提示语（见下表）
 3. 二维码，下面写 "Scan for medical & family info"
 4. 日间保健中心简称，深蓝色窄体加粗一行：**Crown City ADHC Center**（不印中心电话）
-5. **EMERGENCY CONTACT · ICE** 和第 1 位联系人的电话
+5. **EMERGENCY CONTACT** 和第 1 位联系人的电话
 
 | 语言 | 贴纸提示语 | 求助页的第二语言 |
 |---|---|---|
@@ -109,7 +109,7 @@ HTTPS://NOLAN11701.GITHUB.IO/ice/#1*WANG-LI*...*D6265550101MEI
 
 求助页另外会显示中心的完整名称、地址、电话和"Call day center"按钮。中心信息写在 `shared.js` 的 `CENTER` 里，不放进二维码，所以不会让二维码变密。
 
-姓名、病史等隐私资料只在二维码里，不印在表面。二维码扫不出来时（贴纸磨损、扫码的人没有网络），路人仍然可以直接拨打表面的 ICE 电话。
+姓名、病史等隐私资料只在二维码里，不印在表面。二维码扫不出来时（贴纸磨损、扫码的人没有网络），路人仍然可以直接拨打表面的紧急联系电话。
 
 贴纸提示用**手机相机**扫码。微信扫一扫打开外部网页的效果不稳定，不建议使用。
 

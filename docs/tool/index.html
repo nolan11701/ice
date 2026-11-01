@@ -131,9 +131,9 @@
   /* 中心名称要醒目：窄体加粗一行；用深蓝和红色的紧急信息区分，也和求助页的 Call day center 按钮呼应 */
   .s-org { margin: auto 0; text-align: center; line-height: 1.08; font-family: "Roboto Condensed", "Arial Narrow", sans-serif;
     font-size: 3.5mm; font-weight: 800; color: #1e40af; white-space: nowrap; }
-  .s-ice { border-top: 0.3mm solid #ddd; text-align: center; font-weight: 900; white-space: nowrap; line-height: 1.15;
+  .s-contact { border-top: 0.3mm solid #ddd; text-align: center; font-weight: 900; white-space: nowrap; line-height: 1.15;
     padding: 1.1mm 0 1.3mm; font-size: 3.9mm; }
-  .s-ice small { display: block; color: var(--red); font-weight: 800; letter-spacing: .04em; font-size: 2mm; }
+  .s-contact small { display: block; color: var(--red); font-weight: 800; letter-spacing: .04em; font-size: 2mm; }
 
   /* 打印预览：按 Avery 94230 的标签位置排版，每页一张 Letter 纸 */
   #sheet { display: none; }
@@ -182,7 +182,7 @@
         <div><label for="qEn">英文 / 拼音姓名 <small>Name *</small></label><input id="qEn" placeholder="Wang Li" autocomplete="off"></div>
         <div><label for="qZh">中文姓名 <small>Chinese</small></label><input id="qZh" placeholder="王丽" autocomplete="off"></div>
         <div><label for="qRel">称呼 <small>Relation</small></label><select id="qRel"></select></div>
-        <div><label for="qPhone">ICE 电话 <small>Phone</small></label><input id="qPhone" type="tel" placeholder="(626) 555-0101" autocomplete="off"></div>
+        <div><label for="qPhone">紧急联系电话 <small>Emergency phone</small></label><input id="qPhone" type="tel" placeholder="(626) 555-0101" autocomplete="off"></div>
         <div class="add"><button class="primary" id="qAdd">添加 Add ↵</button></div>
       </div>
       <p class="msg" id="qMsg"></p>
@@ -310,7 +310,7 @@ function stickerHTML(d, q) {
     <div class="s-say">${STICKER_TEXT[d.lang] || STICKER_TEXT.M}</div>
     <div class="s-qr">${qrSvg(q)}<div class="s-cap">Scan for medical<br>&amp; family info</div></div>
     <div class="s-org">${esc(CENTER.short)}</div>
-    <div class="s-ice"><small>EMERGENCY CONTACT · ICE</small>${fmtPhone(d.fam[0]?.p || "")}</div>`;
+    <div class="s-contact"><small>EMERGENCY CONTACT</small>${fmtPhone(d.fam[0]?.p || "")}</div>`;
 }
 
 // 经验值：每格 ≥ 0.5mm 普通激光打印、旧手机都比较稳；0.4–0.5mm 需要实测
@@ -335,7 +335,7 @@ function renderRows() {
     $("rows").innerHTML = `<div class="empty">还没有人。用上面的快速添加录入。<br>No one yet. Use Quick add above.</div>`;
   } else {
     $("rows").innerHTML = `<table>
-      <thead><tr><th>#</th><th>姓名 Name</th><th>语言 Language</th><th>ICE 电话 Phone</th><th>份数 Copies</th><th>状态 Status</th><th></th></tr></thead>
+      <thead><tr><th>#</th><th>姓名 Name</th><th>语言 Language</th><th>紧急电话 Emergency phone</th><th>份数 Copies</th><th>状态 Status</th><th></th></tr></thead>
       <tbody>${people.map((p, i) => {
         const e = problems(p);
         const status = e.length ? `<span class="st-bad">⚠ ${e.join(" · ")}</span>`
@@ -404,7 +404,7 @@ function renderDetail() {
           <select id="dLang">${Object.entries(LANG).map(([k, l]) => `<option value="${k}" ${p.lang === k ? "selected" : ""}>${l[1]} ${l[0]}</option>`).join("")}</select></div>
         <div><label>&nbsp;</label><label class="inline" style="margin:10px 0 0"><input type="checkbox" id="dWithZh" ${p.withZh ? "checked" : ""}> 二维码里放中文名 <small>Chinese name in QR</small></label></div>
       </div>
-      <label>联系人 <small>Contacts · 第 1 位印在贴纸上 The first is printed (ICE)</small></label>
+      <label>联系人 <small>Contacts · 第 1 位的电话印在贴纸上 The first number is printed on the sticker</small></label>
       ${[0, 1].map(i => `<div class="fam">
         <select data-f="${i}" data-k="r">${rel(p.fam[i][0])}</select>
         <input data-f="${i}" data-k="n" placeholder="英文名 Name" value="${esc(p.fam[i][1])}">
